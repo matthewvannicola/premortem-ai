@@ -28,29 +28,27 @@ This separation mirrors enterprise architecture standards:
 ---
 
 ## 2. Component Directory Structure
-
-```
+```plaintext
 components/
-discovery/
-component.yaml
-index.js
-final_report/
-component.yaml
-index.js
-mitigation/
-component.yaml
-index.js
-scoring/
-component.yaml
-index.js
-summary/
-component.yaml
-index.js
-themes/
-component.yaml
-index.js
+  discovery/
+    component.yaml
+    index.js
+  scoring/
+    component.yaml
+    index.js
+  themes/
+    component.yaml
+    index.js
+  mitigation/
+    component.yaml
+    index.js
+  summary/
+    component.yaml
+    index.js
+  final_report/
+    component.yaml
+    index.js
 ```
-
 
 ### Component Responsibilities
 
