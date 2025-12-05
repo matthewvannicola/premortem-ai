@@ -1,1 +1,117 @@
+name: discovery
+version: "1.0.0"
 
+description: >
+  Generates a structured set of project risks using GPT-based discovery.
+  Accepts a project description and returns a standardized JSON array
+  of discovered risks following the PreMortem AI schema.
+
+  # Output shape:
+  # {
+  #   "risks": [
+  #     {
+  #       "id": "risk-001",
+  #       "title": "string",
+  #       "description": "string",
+  #       "likelihood": "low|medium|high",
+  #       "impact": "low|medium|high"
+  #     }
+  #   ]
+  # }
+
+type: action
+displayName: Discovery – Generate Risks
+packageName: premortem-ai
+icon: https://raw.githubusercontent.com/matthewvannicola/premortem-ai/main/assets/icon.png
+
+props:
+  project_description:
+    type: string
+    label: Project Description
+    description: Full free-text description of the project to analyze.
+    required: true
+
+run:
+  async (context) => {
+
+    //
+    // -------------------------------
+    // INPUT VALIDATION
+    // -------------------------------
+    //
+    const description = context.props.project_description;
+
+    if (!description || description.trim().length < 10) {
+      throw new Error(
+        "Project description is missing or too short to generate meaningful risks."
+      );
+    }
+
+    //
+    // -------------------------------
+    // NORMALIZATION
+    // -------------------------------
+    //
+    const normalized = description.normalize("NFKC").trim();
+
+    //
+    // -------------------------------
+    // PROMPT CONSTRUCTION
+    // -------------------------------
+    //
+    const prompt = `
+You are PreMortem AI. Given the following project description, identify all hidden,
+latent, ambiguous, or high-impact risks. Return ONLY valid JSON in the following format:
+
+[
+  {
+    "id": "risk-001",
+    "title": "Short title",
+    "description": "Detailed explanation of the risk.",
+    "likelihood": "low | medium | high",
+    "impact": "low | medium | high"
+  }
+]
+
+Project Description:
+${normalized}
+`;
+
+    //
+    // -------------------------------
+    // LLM EXECUTION
+    // -------------------------------
+    //
+    const response = await context.$ai.run("gpt-4.1", {
+      messages: [
+        { role: "system", content: "You are an AI risk-discovery engine." },
+        { role: "user", content: prompt }
+      ],
+      response_format: {
+        type: "json_schema",
+        schema: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              id: { type: "string" },
+              title: { type: "string" },
+              description: { type: "string" },
+              likelihood: { type: "string" },
+              impact: { type: "string" }
+            },
+            required: ["id", "title", "description", "likelihood", "impact"]
+          }
+        }
+      }
+    });
+
+    //
+    // -------------------------------
+    // RETURN OUTPUT
+    // -------------------------------
+    //
+    return {
+      risks: response
+    };
+  }
