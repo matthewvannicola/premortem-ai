@@ -53,7 +53,7 @@ Each stage produces a contract-bound artifact that is consumed by downstream com
 
 ---
 
-# 2. Details Stage-by-Stage Flow
+# 2. Detailed Stage-by-Stage Flow
 
 Each stage includes:
 - Input contract
@@ -85,8 +85,8 @@ Input:
 Processing
 
 - Hybrid scoring model combining:
-          - deterministic likelihood / impact rules
-          - LLM-assisted contextual weighting
+  - deterministic likelihood / impact rules
+  - LLM-assisted contextual weighting
 - Aggregation of severity scores
 - Validation against `scoring.schema.json`
 
@@ -112,7 +112,7 @@ Output:
   `themes[]` — cross-risk abstraction layer enabling leadership interpretation
 
 
-#2.4 Mitigation Stage
+# 2.4 Mitigation Stage
 
 Input:
   - `risks[]`
@@ -129,7 +129,7 @@ Processing:
 Output:
   `mitigations[]` — actionable risk-response guidance
 
-#2.5 Summary Stage
+# 2.5 Summary Stage
 
 Input:
   - `risks[]`
