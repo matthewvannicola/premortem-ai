@@ -1,0 +1,157 @@
+{
+  "project_description": "We are building a new cross-platform Customer Insight Dashboard for internal analytics teams. The system will aggregate data from multiple sources and expose unified customer profiles, scoring, and trend reports. Key challenges include inconsistent data schemas, dependency delays, and real-time performance expectations.",
+
+  "risks": [
+    {
+      "id": "risk-001",
+      "title": "Inconsistent Data Schemas",
+      "description": "Several legacy SQL databases use inconsistent table and field structures, which may lead to incorrect joins, mismatched data fields, or failed ETL jobs during aggregation.",
+      "category": "technical",
+      "probability": 0.68,
+      "impact": 5,
+      "llm_score": 4,
+      "human_score": null,
+      "mitigation": "Implement a schema registry and enforce versioned contracts for all upstream systems to prevent ETL failures and ensure consistent data ingestion."
+    },
+    {
+      "id": "risk-002",
+      "title": "Dependency Delays from Salesforce and Snowflake Teams",
+      "description": "Salesforce and Snowflake integration relies on external teams with unpredictable ticket turnaround times, which could block critical-path development and delay the MVP timeline.",
+      "category": "organizational",
+      "probability": 0.55,
+      "impact": 4,
+      "llm_score": 4,
+      "human_score": null,
+      "mitigation": "Define formal SLAs with Salesforce and Snowflake teams and establish a weekly cross-team sync to proactively identify and unblock integration dependencies."
+    },
+    {
+      "id": "risk-003",
+      "title": "Unstable Real-Time ETL Expectations",
+      "description": "Stakeholders expect near-real-time updates, but current data sources and ETL infrastructure may not reliably support the required frequency or latency.",
+      "category": "technical",
+      "probability": 0.62,
+      "impact": 4,
+      "llm_score": 3,
+      "human_score": null,
+      "mitigation": "Introduce a hybrid ETL model that prioritizes incremental updates and limits real-time refresh to critical fields."
+    },
+    {
+      "id": "risk-004",
+      "title": "Data Quality Ownership Gaps",
+      "description": "No single team owns end-to-end data quality across systems, increasing the likelihood that inaccurate, stale, or conflicting data will propagate into analytic outputs.",
+      "category": "organizational",
+      "probability": 0.47,
+      "impact": 5,
+      "llm_score": 4,
+      "human_score": null,
+      "mitigation": "Assign a dedicated data quality owner and implement automated validation checks across ingestion pipelines."
+    },
+    {
+      "id": "risk-005",
+      "title": "UI/UX Delays Blocking Development",
+      "description": "The design team has not delivered the final UI/UX, which may force engineers to rework frontend components or block feature development.",
+      "category": "project",
+      "probability": 0.59,
+      "impact": 3,
+      "llm_score": 3,
+      "human_score": null,
+      "mitigation": "Adopt a placeholder component library to decouple engineering progress from UI/UX handoff timelines."
+    },
+    {
+      "id": "risk-006",
+      "title": "Security Review Delays",
+      "description": "Security reviews historically extend by 1–2 weeks depending on findings, potentially impacting deployment windows and delaying production rollout.",
+      "category": "security",
+      "probability": 0.44,
+      "impact": 4,
+      "llm_score": 3,
+      "human_score": null,
+      "mitigation": "Start security review early in the MVP phase and run automated scans before formal submission."
+    },
+    {
+      "id": "risk-007",
+      "title": "Sales Team Field Instability",
+      "description": "Frequent changes to Salesforce and Sales Ops field names could break data mappings, dashboards, and ETL pipelines.",
+      "category": "process",
+      "probability": 0.71,
+      "impact": 4,
+      "llm_score": 4,
+      "human_score": null,
+      "mitigation": "Implement schema-drift monitoring and require Sales Ops notification for structure changes."
+    },
+    {
+      "id": "risk-008",
+      "title": "Performance Bottlenecks in Dashboard Rendering",
+      "description": "High query load combined with complex filtering could lead to slow dashboard rendering times, failing the requirement of sub-3-second load speed.",
+      "category": "technical",
+      "probability": 0.52,
+      "impact": 4,
+      "llm_score": 3,
+      "human_score": null,
+      "mitigation": "Introduce caching, query optimization, and indexed filtering to improve load times."
+    },
+    {
+      "id": "risk-009",
+      "title": "PDF Export Branding Failures",
+      "description": "Strict branding requirements for PDF exports may create unexpected iteration cycles or require specialized rendering libraries.",
+      "category": "compliance",
+      "probability": 0.33,
+      "impact": 3,
+      "llm_score": 2,
+      "human_score": null,
+      "mitigation": "Use a standardized, brand-compliant PDF template integrated into the export workflow."
+    },
+    {
+      "id": "risk-010",
+      "title": "Limited Backend Engineering Capacity",
+      "description": "Only two backend engineers are available for a multi-integration MVP, increasing the risk of delays, reduced throughput, and instability.",
+      "category": "resource",
+      "probability": 0.58,
+      "impact": 5,
+      "llm_score": 4,
+      "human_score": null,
+      "mitigation": "Adjust resourcing or bring in temporary engineering support to maintain delivery velocity."
+    }
+  ],
+
+  "themes": [
+    {
+      "theme": "Data Integrity & Schema Stability",
+      "description": "Risks related to inconsistent schemas, data ownership gaps, and field volatility.",
+      "risks": [
+        { "risk_id": "risk-001", "reason": "Schema inconsistencies impact ETL reliability and analytics accuracy." },
+        { "risk_id": "risk-004", "reason": "Data ownership gaps allow inconsistent or stale data to propagate." },
+        { "risk_id": "risk-007", "reason": "Frequent field changes cause schema drift and break integrations." }
+      ]
+    },
+    {
+      "theme": "Cross-Team & Process Bottlenecks",
+      "description": "Risks associated with dependency delays, security review cycles, and UI/UX delivery gaps.",
+      "risks": [
+        { "risk_id": "risk-002", "reason": "Integration dependencies create timeline uncertainty." },
+        { "risk_id": "risk-006", "reason": "Security approvals often lag and block deployment." },
+        { "risk_id": "risk-005", "reason": "Delayed designs cause rework and slow frontend progress." }
+      ]
+    },
+    {
+      "theme": "Scalability & Performance Concerns",
+      "description": "Risks tied to dashboard performance, infrastructure load, and real-time processing expectations.",
+      "risks": [
+        { "risk_id": "risk-003", "reason": "Real-time ETL demand exceeds current infrastructure capacity." },
+        { "risk_id": "risk-008", "reason": "Rendering speed may not meet UX or SLA expectations." },
+        { "risk_id": "risk-010", "reason": "Backend capacity constraints threaten development velocity." }
+      ]
+    },
+    {
+      "theme": "User Experience & Platform Consistency",
+      "description": "Risks affecting brand alignment and end-user experience.",
+      "risks": [
+        { "risk_id": "risk-009", "reason": "Branding inconsistencies create churn and require rework cycles." }
+      ]
+    }
+  ],
+
+  "summary": "The overall risk posture of the Customer Insight Dashboard project is moderate-to-high, driven by data integrity challenges, cross-team dependencies, and performance constraints tied to real-time processing expectations. Structural risks across inconsistent schemas, external dependencies, security review cycles, and performance limitations may impact timelines and user experience. Mitigation measures—such as schema governance, SLAs, incremental ETL, and backend optimization—substantially reduce exposure. Leadership should closely monitor dependencies, capacity, and data quality governance to ensure stable delivery and scalable long-term platform health.",
+
+  "final_report_link": "sample_report.md"
+}
