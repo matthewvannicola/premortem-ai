@@ -1,187 +1,206 @@
-# PreMortem AI — Pipeline Architecture
+# Pipedream Workflows — PreMortem AI Pipeline
 
-The PreMortem AI pipeline transforms a free-text project description into a structured, risk-intelligence report with scoring, thematic clustering, mitigation recommendations, summarization, and an export-ready PDF.
+This directory contains all workflow components, logic blocks, and orchestration assets required to run the PreMortem AI pipeline inside **Pipedream**.  
+Each component is isolated, versioned, and built to support deterministic execution, structured JSON handling, and seamless integration with LLM inference steps.
 
-The system is engineered for:
-
-- deterministic LLM execution  
-- strict JSON-schema validation  
-- component-level isolation  
-- predictable and reproducible outputs  
-
-This makes the pipeline suitable for enterprise, audit-ready environments.
+The Pipedream layer acts as the **operational backbone** of the pipeline—managing triggers, execution order, retries, validation, and report generation.
 
 ---
 
-## Architecture Summary
+## 1. Architecture Overview
 
-The pipeline is implemented using modular Pipedream components that each perform a single, well-defined transformation.  
-Every component enforces strict JSON schemas, ensuring that data flowing through the system is validated, normalized, and contract-bound.
+The Pipedream implementation is organized around two core elements:
 
-### Execution Flow
+### **A. Component Modules (`/components`)**
+Each pipeline stage (Discovery, Scoring, Themes, Mitigation, Summary, Final Report) is implemented as a standalone, reusable Pipedream component.
 
-Data moves through the pipeline in a linear, deterministic sequence:
+Every component folder contains:
+- `component.yaml` — metadata, props, inputs/outputs, versioning
+- `index.js` — execution logic for that pipeline stage
 
-```
-discovery → scoring → themes → mitigation → summary → final_report → pdf_export
-```
+### **B. Workflow Definitions (`/workflows`)**
+Full workflow YAML files define the actual execution graph and orchestrate how components interact.
 
-### Key Architectural Features
-
-- **Component Isolation**  
-  Each step runs independently, receives only the fields it needs, and produces a validated output.
-
-- **Schema-Driven Contracts**  
-  All input/output structures are enforced with JSON schema to ensure reproducibility and predictable downstream behavior.
-
-- **Deterministic Processing**  
-  Scoring and normalization logic guarantee consistent results across repeated executions.
-
-- **Retry Workflow**  
-  A separate retry mechanism re-executes only the failing step, using exponential backoff, without recomputing the full pipeline.
-
-- **Separation of Responsibilities**  
-  Components handle:
-  - extraction  
-  - scoring  
-  - clustering  
-  - mitigation planning  
-  - summarization  
-  - report assembly  
-  - PDF generation  
-
-This architecture enables predictable performance, clear boundaries, and enterprise-grade maintainability.
+This separation mirrors enterprise architecture standards:
+- **Components** = atomic, testable units  
+- **Workflows** = orchestrated business logic  
 
 ---
 
-## Component Responsibilities
+## 2. Component Directory Structure
 
-The pipeline is composed of seven modular components.  
-Each performs a single, deterministic transformation and passes a validated JSON object to the next stage.
-
-### Discovery
-Extracts raw risks, assumptions, uncertainties, and hidden failure modes from the project description.
-
-Produces:
-```json
-{
-  "risks": [
-    {
-      "id": "risk-001",
-      "title": "Concise risk title",
-      "description": "Detailed explanation of the risk",
-      "category": "Operational | Technical | Financial | etc."
-    }
-  ]
-}
+```
+components/
+discovery/
+component.yaml
+index.js
+final_report/
+component.yaml
+index.js
+mitigation/
+component.yaml
+index.js
+scoring/
+component.yaml
+index.js
+summary/
+component.yaml
+index.js
+themes/
+component.yaml
+index.js
 ```
 
-Notes:
 
-- This is the first structured object produced by the pipeline.
-- All downstream components depend on risk_id integrity.
-- Risk ordering remains stable for reproducibility.
+### Component Responsibilities
+
+| Component        | Purpose |
+|------------------|---------|
+| **discovery**    | Extracts raw risks from project description using structured LLM calls. |
+| **scoring**      | Applies probability, impact, and severity scoring rules. |
+| **themes**       | Clusters risks into higher-order patterns. |
+| **mitigation**   | Generates targeted mitigation actions for each risk/theme. |
+| **summary**      | Produces executive-level summaries, health scores, and thematic insights. |
+| **final_report** | Builds and exports the Google Doc / PDF report. |
+
+Each component enforces:
+- Schema validation  
+- Deterministic JSON formatting  
+- Retry logic and error handling  
+- Model configuration (GPT-4.1 / GPT-5.1)  
 
 ---
 
-### Scoring
+## 3. Workflow Definitions (`/workflows`)
 
-Purpose:  
-Apply a deterministic scoring model to each discovered risk, producing quantitative measures of likelihood, impact, and overall severity.
+All workflow YAML files live in the `workflows/` directory.
 
-Adds the following fields to every risk:
+These orchestrate:
+- Input ingestion  
+- Execution order  
+- Error routing  
+- Retry policies  
+- Final report generation  
+- Persistence and logging  
 
-- `likelihood_score` (0–1)
-- `impact_score` (0–1)
-- `severity_score` (0–1, derived)
+Typical workflows:
 
-Example output shape:
-```json
-{
-  "risks": [
-    {
-      "id": "risk-001",
-      "title": "Concise risk title",
-      "description": "Detailed explanation",
-      "category": "Operational",
-      "likelihood_score": 0.4,
-      "impact_score": 0.7,
-      "severity_score": 0.28
-    }
-  ]
-}
-```
+- **main_workflow.yml**  
+  End-to-end pipeline execution.
 
-Notes:
+- **retry_workflow.yml**  
+  Handles fallback logic when a component fails schema validation.
 
-- Scoring is deterministic for identical input.
-- Severity scores preserve ordering for downstream prioritization.
-- No new risks are created or removed during scoring.
+- **report_workflow.yml**  
+  Generates Google Docs / PDF outputs.
 
 ---
 
-# **Themes Component**
+## 4. Deployment Instructions
 
-## **Purpose**
-The **Themes Component** analyzes the full set of discovered risks and identifies higher-order patterns that indicate structural weaknesses or recurring failure modes.  
-Themes provide an abstraction layer above individual risks so leadership can track cross-project patterns, prioritize systemic mitigations, and guide portfolio-level decisions.
+### **Step 1 — Import Components**
+1. Go to **Pipedream → Components**
+2. Click **Import Component**
+3. Import each folder under `/components`
+4. Publish each component version
 
-## **Example Output Shape**
-```jsonc
-{
-  "themes": [
-    {
-      "theme_id": "theme-001",
-      "name": "Unclear Ownership & Accountability",
-      "description": "Multiple risks indicate role ambiguity across engineering and product teams.",
-      "related_risk_ids": ["risk-003", "risk-014", "risk-027"],
-      "occurrence_count": 3
-    }
-  ]
-}
-```
+### **Step 2 — Import Workflows**
+1. Go to **Workflows**
+2. Import each YAML file from `/workflows`
+3. Connect required integrations:
+   - OpenAI API
+   - Google Docs API
+   - Google Drive
+   - Notion (optional)
+   - Sheets (optional)
 
-Notes
-
-- Themes emerge from clustering logic over risk text, metadata, and semantic similarity; they are not hand-picked labels.
-- Each theme must reference only valid risk_id values; the pipeline rejects orphaned or mismatched IDs.
-- Themes must remain concise, interpretable, and minimally overlapping to preserve executive readability.
-- The themes array is consumed by downstream mitigation, summary, and PDF report components to maintain consistent reasoning across the system.
+### **Step 3 — Set Environment Variables**
+In each workflow:
+- `OPENAI_API_KEY`
+- `MODEL_PRIMARY` (e.g., `gpt-5.1`)
+- `MODEL_FALLBACK`
+- `REPORT_FOLDER_ID`
+- `STRICT_VALIDATION`
+- `MAX_RETRIES`
 
 ---
 
-# **Micro-Group 4 — Mitigations Component**
-
-## **Purpose**
-The **Mitigations Component** translates each validated risk into a set of actionable, context-aware mitigation strategies.  
-It ensures every risk has a path toward reduction, ownership clarification, or operational stabilization. This component is critical for turning analysis into execution-ready guidance.
-
-## **Example Output Shape**
-```jsonc
-{
-  "mitigations": [
-    {
-      "risk_id": "risk-014",
-      "mitigation_id": "mitigation-014-01",
-      "actions": [
-        "Define explicit technical ownership for onboarding flows.",
-        "Create a cross-functional escalation path for unresolved dependencies."
-      ],
-      "effort_level": "medium",
-      "confidence": 0.88
-    }
-  ]
-}
+## 5. Execution Flow (High-Level)
+```
+Discovery → Scoring → Themes → Mitigation → Summary → Final Report
 ```
 
-Notes
 
-- The component enforces one-to-many mapping: each risk may yield multiple mitigation strategies.
-- Mitigations must be specific, non-generic, and tied directly to the originating risk text and theme classification.
-- The pipeline requires that every mitigation contains:
-  - A valid risk_id
-  - At least one actionable step
-  - A normalized effort level (low, medium, high)
-  - A confidence score aligned with the scoring engine
--These records are used by the Report Builder and Summary Generator to create consistent leadership-ready deliverables.
+Pipedream workflows manage:
+- Ordered execution  
+- Schema validation after every step  
+- Failure isolation and retry  
+- Fallback model logic  
+- Artifact routing into Google Docs  
 
+---
+
+## 6. Error Handling & Retry Logic
+
+Pipedream workflows implement three layers of protection:
+
+### **1. Component-Level Validation**
+Each component validates its JSON output against strict schemas.
+
+### **2. Step-Level Retry**
+If validation fails:
+- Component is re-executed
+- Hints are added to the LLM prompt
+
+### **3. Workflow-Level Fallback**
+If failure persists:
+- A fallback workflow handles regeneration
+- Output is flagged for review
+- The run is still completed gracefully
+
+---
+
+## 7. Maintaining and Extending Components
+
+You can safely extend or modify pipeline functionality by updating:
+- Component logic in `index.js`
+- Component metadata in `component.yaml`
+- Workflow order or branching in `/workflows`
+- Schemas (outside this folder)
+
+This modular design ensures:
+- Low coupling  
+- High maintainability  
+- Easy experimentation  
+- Enterprise-grade governance  
+
+---
+
+## 8. Best Practices
+
+- Keep all component outputs strictly JSON-validated  
+- Use model temperature = 0 for deterministic behavior  
+- Increment version numbers in `component.yaml` when publishing changes  
+- Log errors inside each component for auditing  
+- Maintain human-readable prompts inside `/docs` or `/prompts`  
+
+---
+
+## 9. Related Documentation
+
+Main architecture README:  
+*(Generated last, after repository is complete)*
+
+Deep-dive component docs:  
+`/docs/components/`
+
+Pipeline schemas:  
+`/schemas/`
+
+Prompts (LLM instructions):  
+`/prompts/`
+
+---
+
+## Maintainer
+This workflow infrastructure is maintained by **Matthew Vannicola**.
