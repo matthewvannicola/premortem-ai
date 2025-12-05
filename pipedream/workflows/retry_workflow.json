@@ -1,6 +1,6 @@
 {
   "name": "PreMortem AI – Retry Pipeline",
-  "description": "Automatically retries failed PreMortem AI steps with exponential backoff and structured error reporting.",
+  "description": "Retries a specific PreMortem AI pipeline step using exponential backoff and Pipedream component execution.",
   "trigger": {
     "type": "http",
     "name": "retry_request"
@@ -9,25 +9,96 @@
     {
       "name": "extract_retry_payload",
       "type": "code",
-      "code": "// Validate retry request\nconst stepName = event.body?.failed_step;\nconst payload = event.body?.input_payload;\n\nif (!stepName) throw new Error(\"Missing required field: failed_step\");\nif (!payload) throw new Error(\"Missing required field: input_payload\");\n\nreturn {\n  failed_step: stepName,\n  input_payload: payload\n};"
+      "code": "// Validate incoming retry request\nconst failed = event.body?.failed_step;\nconst payload = event.body?.input_payload;\n\nif (!failed) throw new Error(\"Missing required field: failed_step\");\nif (!payload) throw new Error(\"Missing required field: input_payload\");\n\nreturn { failed_step: failed, input_payload: payload };"
     },
 
     {
-      "name": "retry_logic",
+      "name": "determine_route",
       "type": "code",
-      "code": "// Generic retry wrapper for any failing LLM step\n\nasync function wait(ms) { return new Promise(r => setTimeout(r, ms)); }\n\nconst MAX_RETRIES = 4;\n\nasync function attempt(fn) {\n  let lastError;\n  for (let i = 1; i <= MAX_RETRIES; i++) {\n    try {\n      return await fn();\n    } catch (err) {\n      lastError = err;\n      console.log(`Retry attempt ${i} failed:`, err.message);\n      await wait(500 * i * i); // exponential backoff\n    }\n  }\n  throw new Error(`Step failed after ${MAX_RETRIES} retries: ${lastError.message}`);\n}\n\nreturn { attempt };"
+      "code": "// Map failed step to rerun target\nconst step = steps.extract_retry_payload.failed_step;\n\nconst VALID_STEPS = [\n  \"discovery\",\n  \"scoring\",\n  \"themes\",\n  \"mitigation\",\n  \"summary\",\n  \"final_report\"\n];\n\nif (!VALID_STEPS.includes(step)) {\n  throw new Error(`Unknown pipeline step: ${step}`);\n}\n\nreturn { rerun: step };"
     },
 
     {
-      "name": "rerun_failed_step",
-      "type": "code",
-      "code": "// Dynamically reruns the failed step using the provided payload.\n// We call the same components used in main_workflow.json.\n\nconst step = steps.extract_retry_payload.failed_step;\nconst payload = steps.extract_retry_payload.input_payload;\nconst attempt = steps.retry_logic.attempt;\n\nconst COMPONENTS = {\n  discovery: \"matthewvannicola/premortem-ai/pipedream/components/discovery\",\n  scoring: \"matthewvannicola/premortem-ai/pipedream/components/scoring\",\n  themes: \"matthewvannicola/premortem-ai/pipedream/components/themes\",\n  mitigation: \"matthewvannicola/premortem-ai/pipedream/components/mitigation\",\n  summary: \"matthewvannicola/premortem-ai/pipedream/components/summary\",\n  final_report: \"matthewvannicola/premortem-ai/pipedream/components/final_report\"\n};\n\nif (!COMPONENTS[step]) {\n  throw new Error(`Unknown pipeline step: ${step}`);\n}\n\n// Run step with retries\nreturn await attempt(async () => {\n  const component = require(COMPONENTS[step]);\n  return await component.run({ props: payload });\n});"
-    },
-
-    {
-      "name": "respond",
-      "type": "code",
-      "code": "// Return retry result with status\nreturn {\n  status: \"retry_success\",\n  step: steps.extract_retry_payload.failed_step,\n  output: steps.rerun_failed_step\n};"
-    }
-  ]
-}
+      "name": "branch_step_type",
+      "type": "branch",
+      "branches": [
+        {
+          "name": "rerun_discovery",
+          "condition": "{{steps.determine_route.rerun === 'discovery'}}",
+          "steps": [
+            {
+              "name": "run_discovery_retry",
+              "type": "component",
+              "retry": {
+                "count": 4,
+                "delay": 500,
+                "factor": 2
+              },
+              "component": "matthewvannicola/premortem-ai/pipedream/components/discovery",
+              "props": {
+                "project_description": "{{steps.extract_retry_payload.input_payload.project_description}}"
+              }
+            }
+          ]
+        },
+        {
+          "name": "rerun_scoring",
+          "condition": "{{steps.determine_route.rerun === 'scoring'}}",
+          "steps": [
+            {
+              "name": "run_scoring_retry",
+              "type": "component",
+              "retry": {
+                "count": 4,
+                "delay": 500,
+                "factor": 2
+              },
+              "component": "matthewvannicola/premortem-ai/pipedream/components/scoring",
+              "props": {
+                "risks": "{{steps.extract_retry_payload.input_payload.risks}}"
+              }
+            }
+          ]
+        },
+        {
+          "name": "rerun_themes",
+          "condition": "{{steps.determine_route.rerun === 'themes'}}",
+          "steps": [
+            {
+              "name": "run_themes_retry",
+              "type": "component",
+              "retry": {
+                "count": 4,
+                "delay": 500,
+                "factor": 2
+              },
+              "component": "matthewvannicola/premortem-ai/pipedream/components/themes",
+              "props": {
+                "risks": "{{steps.extract_retry_payload.input_payload.risks}}"
+              }
+            }
+          ]
+        },
+        {
+          "name": "rerun_mitigation",
+          "condition": "{{steps.determine_route.rerun === 'mitigation'}}",
+          "steps": [
+            {
+              "name": "run_mitigation_retry",
+              "type": "component",
+              "retry": {
+                "count": 4,
+                "delay": 500,
+                "factor": 2
+              },
+              "component": "matthewvannicola/premortem-ai/pipedream/components/mitigation",
+              "props": {
+                "risks": "{{steps.extract_retry_payload.input_payload.risks}}"
+              }
+            }
+          ]
+        },
+        {
+          "name": "rerun_summary",
+          "condition": "{{steps.determine_route.rerun === 'summary'}}",
+          "steps":
