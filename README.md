@@ -4,6 +4,12 @@ Automated risk-analysis system using LLM inference, workflow orchestration, and 
 
 ---
 
+## TL;DR
+
+PreMortem AI transforms unstructured project descriptions into structured, validated, and scored risk intelligence using a multi-pass LLM pipeline, deterministic schemas, and fully automated PDF/Docs reporting.
+
+---
+
 ## Overview
 
 PreMortem AI is a modular, event-driven automation system that transforms unstructured project descriptions into **structured risk intelligence**.
@@ -67,6 +73,7 @@ This repository documents the system’s architecture, schemas, example outputs,
 ---
 
 ## Example Outputs
+
 ```json
 {
   "risk_id": "R-014",
@@ -125,42 +132,42 @@ This repository documents the system’s architecture, schemas, example outputs,
 
 ## Repository Structure
 
-- `schemas/`
+- **`schemas/`**
   - `risk_output.schema.json` – JSON schema for individual risk records
   - `scoring.schema.json` – schema for probability, impact, and severity scoring
   - `metadata.schema.json` – schema for run metadata, project info, and audit fields
 
-- `pipedream/`
+- **`pipedream/`**
   - `premortem_main.yml` – primary orchestration workflow (intake → LLM → scoring → reporting)
   - `premortem_retry.yml` – fallback / retry workflow for failed or partial runs
   - `premortem_pdf.yml` – workflow for generating Google Docs / PDF reports
   - `helpers/`
     - `validate-json.js` – helper for schema validation inside Pipedream steps
 
-- `prompts/`
+- **`prompts/`**
   - `discovery_prompt.md` – prompt for initial risk discovery and expansion
   - `scoring_prompt.md` – prompt for probability, impact, and severity scoring
   - `summary_prompt.md` – prompt for executive summaries and thematic clustering
 
-- `examples/`
+- **`examples/`**
   - `sample_input.json` – example project brief used as intake
   - `sample_output.json` – example structured risk output
   - `sample_report.pdf` – example of the generated executive report
 
-- `docs/`
+- **`docs/`**
   - `architecture_overview.md` – high-level system and data-flow explanation
   - `data_flow_diagram.png` – visual representation of the pipeline
   - `risk_model_explained.md` – details on the severity model and scoring logic
 
-- `src/`
-  - `utils/`
+- **`src/`**
+  - **`utils/`**
     - `normalize_text.py` – text cleaning and normalization helpers
     - `validate_schema.py` – local JSON schema validation utilities
-  - `scoring/`
+  - **`scoring/`**
     - `severity_engine.py` – core severity and weighting logic
 
-- `README.md` – project overview, architecture, and usage
-- `requirements.txt` – Python dependencies for local tools and validation
+- **`README.md`** – project overview, architecture, and usage
+- **`requirements.txt`** – Python dependencies for local tools and validation
 
 ---
 
@@ -362,6 +369,7 @@ All configuration is modular, enabling easy extension without rewriting core pip
 ---
 
 ## Impact & Use Cases
+
 PreMortem AI delivers measurable value across product, engineering, and operations teams by transforming unstructured project descriptions into actionable, structured risk intelligence.
 
 ---
