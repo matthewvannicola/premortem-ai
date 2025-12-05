@@ -71,3 +71,23 @@ For each risk provided, return **one scoring object**:
   "model_reasoning": null
 }
 ```
+
+---
+
+---
+
+## INPUT
+
+The list of risks to score will be provided below:
+
+{{risk_list}}
+
+---
+
+---
+
+## FINAL INSTRUCTION
+
+Now generate the complete list of scoring objects as a **JSON array only**.  
+Do **not** include explanations, comments, reasoning, or markdown formatting.  
+Respond with **strictly valid JSON** that conforms to `scoring.schema.json`.
