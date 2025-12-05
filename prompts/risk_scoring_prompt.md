@@ -70,3 +70,4 @@ For each risk provided, return **one scoring object**:
   "human_score": null,
   "model_reasoning": null
 }
+```
