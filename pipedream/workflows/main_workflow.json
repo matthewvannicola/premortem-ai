@@ -14,7 +14,7 @@
     {
       "name": "risk_discovery",
       "type": "component",
-      "component": "YOUR_USERNAME/premortem-ai/pipedream/components/discovery",
+      "component": "matthewvannicola/premortem-ai/pipedream/components/discovery",
       "props": {
         "project_description": "{{steps.extract_project_description.project_description}}"
       }
@@ -22,7 +22,7 @@
     {
       "name": "risk_scoring",
       "type": "component",
-      "component": "YOUR_USERNAME/premortem-ai/pipedream/components/scoring",
+      "component": "matthewvannicola/premortem-ai/pipedream/components/scoring",
       "props": {
         "risks": "{{steps.risk_discovery}}"
       }
@@ -30,7 +30,7 @@
     {
       "name": "risk_themes",
       "type": "component",
-      "component": "YOUR_USERNAME/premortem-ai/pipedream/components/themes",
+      "component": "matthewvannicola/premortem-ai/pipedream/components/themes",
       "props": {
         "risks": "{{steps.risk_scoring}}"
       }
@@ -38,7 +38,7 @@
     {
       "name": "risk_mitigations",
       "type": "component",
-      "component": "YOUR_USERNAME/premortem-ai/pipedream/components/mitigation",
+      "component": "matthewvannicola/premortem-ai/pipedream/components/mitigation",
       "props": {
         "risks": "{{steps.risk_scoring}}"
       }
@@ -46,7 +46,7 @@
     {
       "name": "executive_summary",
       "type": "component",
-      "component": "YOUR_USERNAME/premortem-ai/pipedream/components/summary",
+      "component": "matthewvannicola/premortem-ai/pipedream/components/summary",
       "props": {
         "risks": "{{steps.risk_scoring}}"
       }
@@ -54,7 +54,7 @@
     {
       "name": "final_report",
       "type": "component",
-      "component": "YOUR_USERNAME/premortem-ai/pipedream/components/final_report",
+      "component": "matthewvannicola/premortem-ai/pipedream/components/final_report",
       "props": {
         "risks": "{{steps.risk_scoring}}",
         "themes": "{{steps.risk_themes}}",
