@@ -1,0 +1,42 @@
+[
+  {
+    "id": "risk-001",
+    "mitigation": "Implement a schema registry and enforce versioned contracts for all upstream systems to prevent ETL failures and ensure consistent data ingestion."
+  },
+  {
+    "id": "risk-002",
+    "mitigation": "Define formal SLAs with Salesforce and Snowflake teams and establish a weekly cross-team sync to proactively identify and unblock integration dependencies."
+  },
+  {
+    "id": "risk-003",
+    "mitigation": "Introduce a hybrid ETL model that prioritizes incremental updates and limits real-time refresh to critical fields, reducing infrastructure load while meeting stakeholder needs."
+  },
+  {
+    "id": "risk-004",
+    "mitigation": "Assign a dedicated data quality owner and implement automated validation checks across ingestion pipelines to catch inconsistencies early."
+  },
+  {
+    "id": "risk-005",
+    "mitigation": "Adopt a placeholder component library that allows engineering to proceed while designs finalize, reducing rework and decoupling development from UI/UX delays."
+  },
+  {
+    "id": "risk-006",
+    "mitigation": "Start security review early in the MVP phase and run pre-checks using automated scanning tools to identify issues before formal submission."
+  },
+  {
+    "id": "risk-007",
+    "mitigation": "Add automated schema-drift monitoring on Salesforce fields and require Sales Ops to provide change notifications before modifying critical data structures."
+  },
+  {
+    "id": "risk-008",
+    "mitigation": "Optimize backend query execution by introducing caching, pagination, and indexed filters to ensure dashboard rendering remains under 3 seconds."
+  },
+  {
+    "id": "risk-009",
+    "mitigation": "Create a standardized PDF template aligned with corporate branding and integrate it into the export pipeline to reduce back-and-forth validation cycles."
+  },
+  {
+    "id": "risk-010",
+    "mitigation": "Prioritize feature development through a capacity-focused roadmap and temporarily expand backend support through contractor or cross-team assistance."
+  }
+]
