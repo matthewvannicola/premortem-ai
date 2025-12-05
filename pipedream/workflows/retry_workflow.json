@@ -1,6 +1,6 @@
 {
   "name": "PreMortem AI – Retry Pipeline",
-  "description": "Retries a specific PreMortem AI pipeline step using exponential backoff and Pipedream component execution.",
+  "description": "Retries a failed PreMortem AI step using exponential backoff and Pipedream component execution.",
   "trigger": {
     "type": "http",
     "name": "retry_request"
@@ -9,13 +9,13 @@
     {
       "name": "extract_retry_payload",
       "type": "code",
-      "code": "// Validate incoming retry request\nconst failed = event.body?.failed_step;\nconst payload = event.body?.input_payload;\n\nif (!failed) throw new Error(\"Missing required field: failed_step\");\nif (!payload) throw new Error(\"Missing required field: input_payload\");\n\nreturn { failed_step: failed, input_payload: payload };"
+      "code": "// Validate incoming retry request\nconst failed = event.body?.failed_step;\nconst payload = event.body?.input_payload;\n\nif (!failed) throw new Error(\"Missing required field: failed_step\");\nif (!payload) throw new Error(\"Missing required field: input_payload\");\n\nreturn {\n  failed_step: failed,\n  input_payload: payload\n};"
     },
 
     {
       "name": "determine_route",
       "type": "code",
-      "code": "// Map failed step to rerun target\nconst step = steps.extract_retry_payload.failed_step;\n\nconst VALID_STEPS = [\n  \"discovery\",\n  \"scoring\",\n  \"themes\",\n  \"mitigation\",\n  \"summary\",\n  \"final_report\"\n];\n\nif (!VALID_STEPS.includes(step)) {\n  throw new Error(`Unknown pipeline step: ${step}`);\n}\n\nreturn { rerun: step };"
+      "code": "// Confirm we recognize this pipeline step\nconst step = steps.extract_retry_payload.failed_step;\n\nconst VALID = [\n  \"discovery\",\n  \"scoring\",\n  \"themes\",\n  \"mitigation\",\n  \"summary\",\n  \"final_report\"\n];\n\nif (!VALID.includes(step)) {\n  throw new Error(`Unknown pipeline step: ${step}`);\n}\n\nreturn { rerun: step };"
     },
 
     {
@@ -23,18 +23,18 @@
       "type": "branch",
       "branches": [
         {
-          "name": "rerun_discovery",
+          "name": "retry_discovery",
           "condition": "{{steps.determine_route.rerun === 'discovery'}}",
           "steps": [
             {
               "name": "run_discovery_retry",
               "type": "component",
+              "component": "matthewvannicola/premortem-ai/pipedream/components/discovery",
               "retry": {
                 "count": 4,
                 "delay": 500,
                 "factor": 2
               },
-              "component": "matthewvannicola/premortem-ai/pipedream/components/discovery",
               "props": {
                 "project_description": "{{steps.extract_retry_payload.input_payload.project_description}}"
               }
@@ -42,18 +42,18 @@
           ]
         },
         {
-          "name": "rerun_scoring",
+          "name": "retry_scoring",
           "condition": "{{steps.determine_route.rerun === 'scoring'}}",
           "steps": [
             {
               "name": "run_scoring_retry",
               "type": "component",
+              "component": "matthewvannicola/premortem-ai/pipedream/components/scoring",
               "retry": {
                 "count": 4,
                 "delay": 500,
                 "factor": 2
               },
-              "component": "matthewvannicola/premortem-ai/pipedream/components/scoring",
               "props": {
                 "risks": "{{steps.extract_retry_payload.input_payload.risks}}"
               }
@@ -61,18 +61,18 @@
           ]
         },
         {
-          "name": "rerun_themes",
+          "name": "retry_themes",
           "condition": "{{steps.determine_route.rerun === 'themes'}}",
           "steps": [
             {
               "name": "run_themes_retry",
               "type": "component",
+              "component": "matthewvannicola/premortem-ai/pipedream/components/themes",
               "retry": {
                 "count": 4,
                 "delay": 500,
                 "factor": 2
               },
-              "component": "matthewvannicola/premortem-ai/pipedream/components/themes",
               "props": {
                 "risks": "{{steps.extract_retry_payload.input_payload.risks}}"
               }
@@ -80,18 +80,18 @@
           ]
         },
         {
-          "name": "rerun_mitigation",
+          "name": "retry_mitigation",
           "condition": "{{steps.determine_route.rerun === 'mitigation'}}",
           "steps": [
             {
               "name": "run_mitigation_retry",
               "type": "component",
+              "component": "matthewvannicola/premortem-ai/pipedream/components/mitigation",
               "retry": {
                 "count": 4,
                 "delay": 500,
                 "factor": 2
               },
-              "component": "matthewvannicola/premortem-ai/pipedream/components/mitigation",
               "props": {
                 "risks": "{{steps.extract_retry_payload.input_payload.risks}}"
               }
@@ -99,6 +99,53 @@
           ]
         },
         {
-          "name": "rerun_summary",
+          "name": "retry_summary",
           "condition": "{{steps.determine_route.rerun === 'summary'}}",
-          "steps":
+          "steps": [
+            {
+              "name": "run_summary_retry",
+              "type": "component",
+              "component": "matthewvannicola/premortem-ai/pipedream/components/summary",
+              "retry": {
+                "count": 4,
+                "delay": 500,
+                "factor": 2
+              },
+              "props": {
+                "risks": "{{steps.extract_retry_payload.input_payload.risks}}"
+              }
+            }
+          ]
+        },
+        {
+          "name": "retry_final_report",
+          "condition": "{{steps.determine_route.rerun === 'final_report'}}",
+          "steps": [
+            {
+              "name": "run_final_report_retry",
+              "type": "component",
+              "component": "matthewvannicola/premortem-ai/pipedream/components/final_report",
+              "retry": {
+                "count": 4,
+                "delay": 500,
+                "factor": 2
+              },
+              "props": {
+                "risks": "{{steps.extract_retry_payload.input_payload.risks}}",
+                "themes": "{{steps.extract_retry_payload.input_payload.themes}}",
+                "mitigations": "{{steps.extract_retry_payload.input_payload.mitigations}}",
+                "summary": "{{steps.extract_retry_payload.input_payload.summary}}"
+              }
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "respond",
+      "type": "code",
+      "code": "// Capture the branch that executed successfully\nconst branch = steps.branch_step_type;\n\n// Locate whichever branch returned output\nlet output = null;\nfor (const key in branch) {\n  if (branch[key] && typeof branch[key] === 'object') {\n    output = branch[key];\n  }\n}\n\nreturn {\n  status: \"retry_success\",\n  step: steps.determine_route.rerun,\n  output\n};"
+    }
+  ]
+}
