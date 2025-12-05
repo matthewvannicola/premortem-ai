@@ -31,4 +31,4 @@ Here is the full set of risks (including severity values):
 
 ```json
 {risks}
-""".strip()
+```.strip()
