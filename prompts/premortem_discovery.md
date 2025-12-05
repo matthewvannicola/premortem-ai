@@ -78,3 +78,20 @@ Respond **only** with this JSON array (no text outside the array):
   }
 ]
 ```
+---
+
+## INPUT
+
+The project description will be provided below:
+
+{{project_description}}
+
+---
+
+## FINAL INSTRUCTION
+
+Now generate the complete list of risks as a **JSON array only**.  
+Do **not** include explanations, comments, markdown, or any text outside the JSON array.  
+Respond with **strictly valid JSON** matching the schema.
+
+---
