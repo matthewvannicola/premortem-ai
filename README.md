@@ -126,7 +126,7 @@ This repository documents the system’s architecture, schemas, example outputs,
 - Data normalization & validation pipelines
 - Severity scoring & probability modeling
 - Automated PDF and Google Docs generation
-- Notion for reporting, audit l
+- Notion for reporting, audit logging, and long-term storage
 
 ---
 
@@ -1001,3 +1001,7 @@ If you’d like to connect, collaborate, or discuss automation systems:
 - **Email:** <matthew.vannicolajr@gmail.com>  
 
 Feel free to reach out for project collaborations, architecture questions, workflow design, or AI-powered automation opportunities.
+
+---
+
+LISCENSE
