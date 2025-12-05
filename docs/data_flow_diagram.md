@@ -1,9 +1,9 @@
 # PreMortem AI — Data Flow Diagram
 
-This document illustrates the end-to-end flow of data through the PreMortem AI
-pipeline, from unstructured project input to the final schema-validated
-`RiskReport`. Each stage produces a deterministic, validated artifact that is
-consumed by the next stage.
+This document provides a detailed view of how PreMortem AI transforms raw, unstructured project context into a fully structured, validated `RiskReport`.
+The pipeline emphasizes determinism, schema integrity, traceability, and repeatable LLM-augmented inference across every stage.
+
+Each stage produces a contract-bound artifact that is consumed by downstream components, ensuring a reliable and auditable flow from input to final report generation.
 
 ---
 
@@ -53,7 +53,7 @@ consumed by the next stage.
 
 ---
 
-# 2. Detailes Stage-by-Stage Flow
+# 2. Details Stage-by-Stage Flow
 
 Each stage includes:
 - Input contract
@@ -62,87 +62,92 @@ Each stage includes:
 - Output artifact passed downstream
 
 # 2.1 Discovery Stage
+
 Input:
-  - project_description (string)
+  - `project_description` (string)
 
 LLM Interaction:
   - structured extraction → JSON array of risk candidates
 
 Core Processing:
   - normalization
-  - ID generation (risk-xxxxx)
-  - schema validation (risk_item.schema.json)
+  - ID generation (`risk-xxxxx`)
+  - schema validation `risk_item.schema.json`
 
 Output:
-  risks[]
+  `risks[]` — an array of typed, canonical risk objects
 
 # 2.2 Scoring Stage
 
 Input:
-  - risks[]
+  - `risks[]`
 
-Processing:
-  - deterministic scoring rules (likelihood, impact)
-  - LLM-assisted contextual scoring
-  - severity aggregation
-  - schema validation (scoring.schema.json)
+Processing
+
+- Hybrid scoring model combining:
+          - deterministic likelihood / impact rules
+          - LLM-assisted contextual weighting
+- Aggregation of severity scores
+- Validation against `scoring.schema.json`
 
 Output:
-  scores[]
+  `scores[]` — probability, impact, and severity metadata for each risk
 
 # 2.3 Themes Stage
 
 Input:
-  - risks[]
-  - scores[]
+  - `risks[]`
+  - `scores[]`
 
 LLM Interaction:
   - thematic clustering via structured prompt
 
-Processing:
-  - theme ID assignment (theme-xxxxx)
-  - membership mapping (risk_ids → themes)
-  - schema validation
+Processing
+
+- `theme-xxxxx` ID generation
+- Membership mapping (risk_ids → themes)
+- Schema validation
 
 Output:
-  themes[]
+  `themes[]` — cross-risk abstraction layer enabling leadership interpretation
 
 
 #2.4 Mitigation Stage
 
 Input:
-  - risks[]
-  - scores[]
-  - themes[]
+  - `risks[]`
+  - `scores[]`
+  - `themes[]`
 
 LLM Interaction:
-  - structured mitigation generation (JSON only)
+  - Strict JSON-only generation of mitigation strategies aligned to individual risks and themes
 
 Processing:
-  - normalization and de-duplication
-  - schema validation (mitigation.schema.json)
+  - Normalization and de-duplication of generated actions
+  - Validation against `mitigation.schema.json`
 
 Output:
-  mitigations[]
+  `mitigations[]` — actionable risk-response guidance
 
 #2.5 Summary Stage
 
 Input:
-  - risks[]
-  - scores[]
-  - themes[]
-  - mitigations[]
+  - `risks[]`
+  - `scores[]`
+  - `themes[]`
+  - `mitigations[]`
 
 LLM Interaction:
-  - executive-level narrative synthesis
+  - Executive-level narrative synthesis representing the overall project risk posture
 
-Processing:
-  - health score calculation
-  - top-risk extraction
-  - schema validation (summary.schema.json)
+Processing
+
+- Health score calculation
+- Prioritization of top-risk narratives
+- Validation against `summary.schema.json`
 
 Output:
-  summary{}
+  `summary{}` — high-level, human-readable project risk summary
 
 ---
 
@@ -158,30 +163,38 @@ RiskReport:
   summary: {...}       # executive-level narrative
   metadata: {...}      # execution + model metadata
 ```
-All artifacts are validated against `risk_report.schema.json` to ensure structural integrity before downstream consumption.
+All fields undergo a final validation pass against `risk_report.schema.json` to ensure structural integrity, contract fidelity, and safe downstream consumption.
 
 ---
 
 # 4. Error Handling & Recovery
 
-The pipeline supports:
-- LLM retry logic (malformed JSON, incomplete fields)
-- deterministic fallback scoring
-- stage-level hard stops on schema violations
-- full traceability of intermediate JSON artifacts
+The pipeline is designed for reliability under imperfect LLM outputs and enforces strict operational safeguards:
+
+- Automatic retry logic for malformed or incomplete JSON
+- Fail-fast enforcement on schema violations
+- Deterministic fallback scoring pathways
+- Full traceability of intermediate artifacts for auditability and debugging
+- Logging of LLM prompts, responses, normalization steps, and validation results
+
+These controls ensure predictable behavior across inference runs and prevent propagation of corrupted artifacts.
 
 ---
 
 # 5. Data Provenance
 
-Every domain contributes structured, validated artifacts that can be:
-- logged
-- audited
-- reproduced
-- version-controlled
+PreMortem AI maintains an immutable lineage for every generated artifact:
 
-Ensuring consistent behavior across all inference runs.
+- All intermediate objects (risks, scores, themes, mitigations, summary) are logged and version-tracked
+- Every LLM-created output is normalized, validated, and replayable
+- Inputs, prompts, schema versions, and runtime metadata are preserved for auditability
+- Deterministic transformations guarantee reproducible outputs for identical inputs
+
+This provenance model ensures enterprise-grade transparency and compliance with internal governance, quality assurance, and regulatory expectations.
 
 ---
 
-This data flow model provides a transparent, end-to-end view of how PreMortem AI transforms raw project data into structured, analyzable risk intelligence.
+# Summary
+
+This data flow architecture provides a rigorous, transparent, and fully auditable pipeline that transforms unstructured project descriptions into rich, structured risk intelligence.
+Through deterministic processing, schema-based validation, and carefully constrained LLM interactions, PreMortem AI delivers repeatable, enterprise-safe analysis designed for real-world engineering, product, and leadership workflows.
