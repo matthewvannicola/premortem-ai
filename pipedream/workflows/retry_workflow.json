@@ -1,0 +1,33 @@
+{
+  "name": "PreMortem AI – Retry Pipeline",
+  "description": "Automatically retries failed PreMortem AI steps with exponential backoff and structured error reporting.",
+  "trigger": {
+    "type": "http",
+    "name": "retry_request"
+  },
+  "steps": [
+    {
+      "name": "extract_retry_payload",
+      "type": "code",
+      "code": "// Validate retry request\nconst stepName = event.body?.failed_step;\nconst payload = event.body?.input_payload;\n\nif (!stepName) throw new Error(\"Missing required field: failed_step\");\nif (!payload) throw new Error(\"Missing required field: input_payload\");\n\nreturn {\n  failed_step: stepName,\n  input_payload: payload\n};"
+    },
+
+    {
+      "name": "retry_logic",
+      "type": "code",
+      "code": "// Generic retry wrapper for any failing LLM step\n\nasync function wait(ms) { return new Promise(r => setTimeout(r, ms)); }\n\nconst MAX_RETRIES = 4;\n\nasync function attempt(fn) {\n  let lastError;\n  for (let i = 1; i <= MAX_RETRIES; i++) {\n    try {\n      return await fn();\n    } catch (err) {\n      lastError = err;\n      console.log(`Retry attempt ${i} failed:`, err.message);\n      await wait(500 * i * i); // exponential backoff\n    }\n  }\n  throw new Error(`Step failed after ${MAX_RETRIES} retries: ${lastError.message}`);\n}\n\nreturn { attempt };"
+    },
+
+    {
+      "name": "rerun_failed_step",
+      "type": "code",
+      "code": "// Dynamically reruns the failed step using the provided payload.\n// We call the same components used in main_workflow.json.\n\nconst step = steps.extract_retry_payload.failed_step;\nconst payload = steps.extract_retry_payload.input_payload;\nconst attempt = steps.retry_logic.attempt;\n\nconst COMPONENTS = {\n  discovery: \"matthewvannicola/premortem-ai/pipedream/components/discovery\",\n  scoring: \"matthewvannicola/premortem-ai/pipedream/components/scoring\",\n  themes: \"matthewvannicola/premortem-ai/pipedream/components/themes\",\n  mitigation: \"matthewvannicola/premortem-ai/pipedream/components/mitigation\",\n  summary: \"matthewvannicola/premortem-ai/pipedream/components/summary\",\n  final_report: \"matthewvannicola/premortem-ai/pipedream/components/final_report\"\n};\n\nif (!COMPONENTS[step]) {\n  throw new Error(`Unknown pipeline step: ${step}`);\n}\n\n// Run step with retries\nreturn await attempt(async () => {\n  const component = require(COMPONENTS[step]);\n  return await component.run({ props: payload });\n});"
+    },
+
+    {
+      "name": "respond",
+      "type": "code",
+      "code": "// Return retry result with status\nreturn {\n  status: \"retry_success\",\n  step: steps.extract_retry_payload.failed_step,\n  output: steps.rerun_failed_step\n};"
+    }
+  ]
+}
