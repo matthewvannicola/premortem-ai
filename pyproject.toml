@@ -1,0 +1,78 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "premortem-ai"
+version = "0.1.0"
+description = "Deterministic LLM-based risk analysis utilities for the PreMortem AI system."
+authors = [
+    { name = "Matthew Vannicola", email = "your-email@example.com" }
+]
+license = { text = "MIT" }
+readme = "README.md"
+requires-python = ">=3.9"
+
+# Your core utility modules (normalize, schema_validation, severity_engine)
+dependencies = []
+
+# Optional classifiers (recommended for professional repos)
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+
+[project.urls]
+Homepage = "https://github.com/YOUR_GITHUB_USERNAME/premortem-ai"
+Repository = "https://github.com/YOUR_GITHUB_USERNAME/premortem-ai"
+Issues = "https://github.com/YOUR_GITHUB_USERNAME/premortem-ai/issues"
+
+
+# ------------------------------------------------------------
+# SETUPTOOLS CONFIGURATION
+# ------------------------------------------------------------
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["src.*"]
+exclude = ["tests*"]
+
+
+# ------------------------------------------------------------
+# DEV / TEST DEPENDENCIES
+# ------------------------------------------------------------
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "black>=24.0.0",
+    "ruff>=0.1.0",
+]
+
+
+# ------------------------------------------------------------
+# TOOLING CONFIG (Black + Ruff)
+# ------------------------------------------------------------
+
+[tool.black]
+line-length = 100
+target-version = ["py39"]
+exclude = '''
+/(
+    \.git
+  | \.pytest_cache
+  | build
+  | dist
+)/
+'''
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "W", "I"]
+exclude = ["build", "dist", ".git", "__pycache__"]
+target-version = "py39"
