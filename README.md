@@ -19,6 +19,7 @@ The platform integrates LLM processing, workflow orchestration, scoring logic, a
 This repository documents the system’s architecture, schemas, example outputs, and prompt structures.
 
 ---
+## System Architecture
 
 ### **Intake & Trigger**
 
