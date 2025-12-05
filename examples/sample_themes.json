@@ -1,0 +1,66 @@
+[
+  {
+    "theme": "Data Integrity & Schema Stability",
+    "description": "Several risks point to unstable schemas, inconsistent data structures, and frequent source system changes that threaten downstream accuracy and pipeline reliability.",
+    "risks": [
+      {
+        "risk_id": "risk-001",
+        "reason": "Inconsistent and evolving schemas directly create breakage in ETL flows and analytics accuracy."
+      },
+      {
+        "risk_id": "risk-004",
+        "reason": "Lack of data ownership results in inaccurate or unvalidated data being propagated across the system."
+      },
+      {
+        "risk_id": "risk-007",
+        "reason": "Frequent Salesforce field modifications are a primary source of schema drift and pipeline instability."
+      }
+    ]
+  },
+  {
+    "theme": "Cross-Team & Process Bottlenecks",
+    "description": "These risks share a pattern of organizational and workflow-related blockers—security reviews, cross-team alignment, and communication gaps—which slow progress and introduce uncertainty into delivery timelines.",
+    "risks": [
+      {
+        "risk_id": "risk-002",
+        "reason": "Dependencies on multiple teams for integration create coordination delays."
+      },
+      {
+        "risk_id": "risk-006",
+        "reason": "Security review cycles regularly extend timelines and introduce approval bottlenecks."
+      },
+      {
+        "risk_id": "risk-005",
+        "reason": "UI/UX dependencies create rework cycles and slow interface delivery."
+      }
+    ]
+  },
+  {
+    "theme": "Scalability & Performance Concerns",
+    "description": "Risks within this theme relate to system performance, infrastructure limitations, and the ability to handle real-time or high-volume workloads without degradation.",
+    "risks": [
+      {
+        "risk_id": "risk-003",
+        "reason": "Real-time ETL requirements exceed current infrastructure capabilities."
+      },
+      {
+        "risk_id": "risk-008",
+        "reason": "Dashboard performance issues may impact user experience and violate SLA expectations."
+      },
+      {
+        "risk_id": "risk-010",
+        "reason": "Backend capacity constraints pose a risk to throughput scalability."
+      }
+    ]
+  },
+  {
+    "theme": "User Experience & Platform Consistency",
+    "description": "Some risks center around ensuring a consistent, predictable, and aligned product experience for end users.",
+    "risks": [
+      {
+        "risk_id": "risk-009",
+        "reason": "Branding and design inconsistencies contribute to fragmented user experience and churn risk."
+      }
+    ]
+  }
+]
