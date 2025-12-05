@@ -1,9 +1,11 @@
-# PreMortem AI  
+# PreMortem AI 
+
 Automated risk-analysis system using LLM inference, workflow orchestration, and structured data pipelines.
 
 ---
 
 ## Overview
+
 PreMortem AI is a modular, event-driven automation system that transforms unstructured project descriptions into **structured risk intelligence**.
 
 The platform integrates LLM processing, workflow orchestration, scoring logic, and automated reporting into a **single, enterprise-ready architecture** designed for reliability, transparency, and repeatability.
@@ -19,6 +21,7 @@ PreMortem AI operates across five core layers:
 ---
 
 ### **1. Intake & Trigger**
+
 - Google Sheets stores project descriptions and metadata  
 - Pipedream monitors updates and triggers the workflow pipeline  
 - Input data is validated and normalized before LLM processing  
@@ -26,6 +29,7 @@ PreMortem AI operates across five core layers:
 ---
 
 ### **2. LLM Inference**
+
 - GPT-5.1 (fallback to GPT-4.1) processes structured prompts  
 - Deterministic JSON schemas ensure consistent, machine-readable outputs  
 - Multi-pass inference improves identification and scoring accuracy  
@@ -33,6 +37,7 @@ PreMortem AI operates across five core layers:
 ---
 
 ### **3. Workflow Orchestration**
+
 - Pipedream manages step-by-step logic, retries, and dynamic routing  
 - Error-handling rules isolate failed tasks and perform intelligent recovery  
 - Modular design enables updates without disrupting other components  
@@ -40,6 +45,7 @@ PreMortem AI operates across five core layers:
 ---
 
 ### **4. Data Processing & Scoring**
+
 - Outputs are parsed, categorized, and assigned severity scores  
 - Cross-team scoring logic ensures alignment and repeatability  
 - Data is prepared for reporting and knowledge-base storage  
@@ -47,6 +53,7 @@ PreMortem AI operates across five core layers:
 ---
 
 ### **5. Reporting & Documentation**
+
 - Automated PDF generation produces standardized, executive-ready briefs  
 - Reports and datasets are logged into Notion for versioning and visibility  
 - Audit trails provide full traceability across the entire workflow  
@@ -54,6 +61,7 @@ PreMortem AI operates across five core layers:
 ---
 
 ## Features & Capabilities
+
 - Multi-domain risk identification (technical, operational, product, organizational)  
 - Structured LLM inference pipelines  
 - Deterministic scoring and probability modeling  
@@ -81,6 +89,7 @@ PreMortem AI operates across five core layers:
 ## Tech Stack
 
 ### **AI & LLMs**
+
 - GPT-5.1 (primary inference model)
 - GPT-4.1 (fallback model)
 - GPT-4o (lightweight checks & summarization)
@@ -91,6 +100,7 @@ PreMortem AI operates across five core layers:
 ---
 
 ### **Automation Platforms**
+
 - Pipedream (event-driven orchestration)
 - Make.com (supplementary workflow automation)
 - Zapier (lightweight integrations & triggers)
@@ -100,6 +110,7 @@ PreMortem AI operates across five core layers:
 ---
 
 ### **APIs & Integrations**
+
 - REST APIs (request/response flows)
 - Webhooks (event triggers & callback flows)
 - OAuth2 / token-based authentication
@@ -109,65 +120,12 @@ PreMortem AI operates across five core layers:
 ---
 
 ### **Data & Reporting**
+
 - Google Sheets as structured intake layer
 - Data normalization & validation pipelines
 - Severity scoring & probability modeling
 - Automated PDF and Google Docs generation
 - Notion for reporting, audit l
-
----
-
-## How It Works
-
-PreMortem AI transforms a raw project description into structured intelligence through an
-LLM-driven, multi-stage automation pipeline. Each stage is fully deterministic, auditable, and
-orchestrated through Pipedream.
-
----
-
-### **1. Intake & Validation**
-- Project descriptions entered in Google Sheets  
-- Change event triggers the workflow  
-- Input is normalized, cleaned, and validated against expected fields  
-- Metadata (owner, project type, dates, etc.) is attached  
-
----
-
-### **2. Multi-Pass LLM Analysis**
-- GPT-5.1 performs first-pass risk discovery  
-- GPT-4.1 executes fallback inference for partial or malformed outputs  
-- JSON schema validation enforces deterministic formatting  
-- A second LLM pass enriches, merges, and re-scores the draft results  
-- Outputs are structured into machine-readable arrays
-
----
-
-### **3. Scoring & Severity Modeling**
-- Each risk is assigned:  
-  - **Probability** (Low / Medium / High)  
-  - **Impact** (Low / Medium / High)  
-  - **Severity** (numeric ranking for prioritization)  
-- Team-based consensus scoring is optionally supported  
-- Results feed into summary generation (top risks, clustering, recommendations)
-
----
-
-### **4. Reporting & Documentation**
-- A Google Docs template is automatically populated with:  
-  - Executive summary  
-  - Top risk themes  
-  - Full structured risk table  
-  - Recommended mitigation actions  
-- PDFs are generated for stakeholder-ready distribution  
-- Outputs are logged into Notion with timestamps, inputs, and scoring metadata
-
----
-
-### **5. Audit Trail & Logging**
-- Each run is versioned and timestamped  
-- Input, intermediate JSON, and final outputs are stored  
-- Errors route to a recovery workflow with controlled retries  
-- All LLM messages and transformations are preserved for transparency
 
 ---
 
@@ -213,12 +171,14 @@ orchestrated through Pipedream.
 ---
 
 ## Configuration
+
 This section defines how PreMortem AI manages environment variables, schema validation, model selection, and pipeline rules.  
 All configuration is deterministic, modular, and optimized for enterprise reliability.
 
 ---
 
 ### **1. Environment Variables**
+
 These variables control inference behavior, output routing, and schema validation.
 
 ```env
@@ -246,6 +206,7 @@ STRICT_VALIDATION=true
 ---
 
 ### **2. JSON Schema Validation**
+
 Every LLM output is checked against strict JSON schemas before it enters the rest of the pipeline.  
 This ensures the system always produces clean, structured, machine-readable data.
 
@@ -263,12 +224,14 @@ This guarantees deterministic outputs and prevents malformed responses from brea
 ---
 
 ### **3. Multi-Pass Inference Configuration**
+
 PreMortem AI uses a multi-pass inference pipeline to improve accuracy, enforce structure, and reduce hallucinations.  
 Each stage focuses on a different part of the analysis, allowing the system to produce highly reliable outputs.
 
 ---
 
 #### **Pass 1 — Discovery Layer**
+
 - GPT-5.1 identifies raw risks based on the project description  
 - Focuses on breadth, context, and uncovering hidden dependencies  
 - Produces a structured but unscored list of risks  
@@ -276,6 +239,7 @@ Each stage focuses on a different part of the analysis, allowing the system to p
 ---
 
 #### **Pass 2 — Scoring Layer**
+
 - GPT-4.1 evaluates probability, impact, and severity  
 - Uses deterministic scoring rules defined in the scoring schema  
 - Ensures consistent and repeatable results across runs  
@@ -283,6 +247,7 @@ Each stage focuses on a different part of the analysis, allowing the system to p
 ---
 
 #### **Pass 3 — Summary Layer**
+
 - GPT-4o generates leadership-ready summaries and top-risk highlights  
 - Clusters risks into themes (technical, organizational, product, etc.)  
 - Creates a clean, executive-friendly overview of the findings  
@@ -292,12 +257,14 @@ Each pass is validated independently and logged in the audit trail to ensure ful
 ---
 
 ### **4. Pipeline Execution Rules**
+
 These rules define how the system behaves during inference, validation, error recovery, and reporting.  
 They ensure reliability, stability, and deterministic outcomes across executions.
 
 ---
 
 #### **Rule 1 — Conditional Model Fallback**
+
 Fallback is triggered when:
 - JSON output is malformed  
 - Required fields are missing  
@@ -314,6 +281,7 @@ This prevents single-pass failures from stopping the workflow.
 ---
 
 #### **Rule 2 — Controlled Retries**
+
 If an LLM output fails validation:
 1. Attempt regeneration with correction hints  
 2. Retry with fallback model  
@@ -325,6 +293,7 @@ This ensures the pipeline always completes gracefully.
 ---
 
 #### **Rule 3 — Output Normalization**
+
 Before scoring or reporting:
 - Normalize enums (“High”, not “high”)  
 - Trim whitespace and fix formatting  
@@ -337,6 +306,7 @@ Normalization enforces consistency across all outputs.
 ---
 
 #### **Rule 4 — Reporting Conditions**
+
 The reporting workflow (PDF/Docs generation) only runs when:
 - All risk objects pass validation  
 - Metadata is complete  
@@ -352,6 +322,7 @@ This ensures only clean, validated runs produce final reports.
 ---
 
 ### **5. Audit Trail Configuration**
+
 PreMortem AI maintains a full audit trail for every execution.  
 This enables transparency, debugging, compliance, and reproducibility.
 
@@ -372,6 +343,7 @@ This ensures every run is fully traceable from input to final report.
 ---
 
 ### **6. Customization**
+
 PreMortem AI is designed to be fully configurable so teams can adapt the system to their workflow, modeling needs, and reporting formats.
 
 Key customization points include:
@@ -401,10 +373,12 @@ PreMortem AI delivers measurable value across product, engineering, and operatio
 ---
 
 ### **1. Faster, Higher-Quality Risk Discovery**
+
 Traditional pre-mortem sessions require multi-hour meetings and still miss critical risks.  
 PreMortem AI identifies 50–200 risks in seconds, dramatically increasing coverage and reducing blind spots.
 
 **Value:**
+
 - Accelerates planning cycles  
 - Improves forecast accuracy  
 - Reduces late-stage project failures  
@@ -412,10 +386,12 @@ PreMortem AI identifies 50–200 risks in seconds, dramatically increasing cover
 ---
 
 ### **2. Standardized Scoring & Decision Making**
+
 Different teams score risks differently, leading to inconsistent prioritization.  
 PreMortem AI enforces deterministic probability, impact, and severity scoring for every project.
 
 **Value:**
+
 - Creates a shared language around risk  
 - Enables cross-team comparability  
 - Supports leadership decision-making  
@@ -423,9 +399,11 @@ PreMortem AI enforces deterministic probability, impact, and severity scoring fo
 ---
 
 ### **3. Automated Executive Reporting**
+
 Instead of manually compiling notes, summaries, and risk tables, the system generates polished PDF or Google Docs reports with one click.
 
 **Value:**
+
 - Saves hours of manual report-building  
 - Ensures consistent formatting and quality  
 - Supports recurring project reviews at scale  
@@ -433,9 +411,11 @@ Instead of manually compiling notes, summaries, and risk tables, the system gene
 ---
 
 ### **4. Auditability & Compliance**
+
 All inputs, LLM messages, scoring logic, retries, and outputs are fully logged.
 
 **Value:**
+
 - Enables transparent, defensible decision-making  
 - Supports compliance and governance standards  
 - Provides complete traceability for audits  
@@ -443,9 +423,11 @@ All inputs, LLM messages, scoring logic, retries, and outputs are fully logged.
 ---
 
 ### **5. Enterprise Workflow Integration**
+
 PreMortem AI plugs into tools teams already use — Google Sheets, Pipedream, Notion, and internal APIs.
 
 **Value:**
+
 - Zero learning curve  
 - Compatible with any project workflow  
 - Easily extended to Jira, Asana, ServiceNow, or internal systems  
@@ -453,6 +435,7 @@ PreMortem AI plugs into tools teams already use — Google Sheets, Pipedream, No
 ---
 
 ### **6. Ideal For**
+
 - Product Managers  
 - Engineering Leads  
 - Program / Project Managers  
@@ -475,17 +458,8 @@ Below is a text-based representation of the system diagram.
 
 ---
 
-### **1. Intake Layer**
-**Google Sheets → Pipedream Trigger**
-
-- Users enter project descriptions and metadata into Google Sheets.  
-- Any change triggers the workflow via a Pipedream event listener.  
-- Input is validated and normalized before LLM processing begins.
-
----
-
-
 ### 1. Intake Layer
+
 **Google Sheets → Pipedream Trigger**
 
 - Project descriptions and metadata are entered into Google Sheets.
@@ -503,6 +477,7 @@ Input Validation
 ---
 
 ### 2. LLM Processing Layer
+
 **Multi-pass inference using GPT-5.1, GPT-4.1, and GPT-4o**
 
 - Pass 1 — Discovery (GPT-5.1): identifies raw risk candidates.
@@ -520,6 +495,7 @@ Summary (GPT-4o)
 ---
 
 ### 3. Orchestration Layer
+
 **Pipedream Workflow**
 
 - Controls pipeline execution order.
@@ -556,6 +532,7 @@ Final Clean Dataset
 ---
 
 ### 5. Reporting Layer
+
 **Google Docs → PDF**
 
 - Fills a Google Docs template with risk tables and summaries.
@@ -573,6 +550,7 @@ PDF Export
 ---
 
 ### 6. Audit Logging Layer
+
 **Notion + Google Sheets (optional)**
 
 - Logs raw inputs, LLM messages, schema validation status, and retries.
@@ -614,6 +592,7 @@ The following roadmap outlines planned enhancements and long-term improvements f
 ---
 
 ### **1. Enhanced Integrations**
+
 - Jira, Asana, and ClickUp API connectors for automated project ingestion  
 - Slack and Teams notifications for report delivery  
 - ServiceNow integration for risk escalation workflows  
@@ -621,6 +600,7 @@ The following roadmap outlines planned enhancements and long-term improvements f
 ---
 
 ### **2. Multi-Project Batch Processing**
+
 - Support for batch ingestion of 10–100 projects at once  
 - Parallel processing with shared context models  
 - Consolidated executive reports for program-level risk visibility  
@@ -628,6 +608,7 @@ The following roadmap outlines planned enhancements and long-term improvements f
 ---
 
 ### **3. Advanced Analytics & Dashboards**
+
 - Risk trend analytics over time  
 - Aggregated severity scoring across teams  
 - Visualization dashboards powered by Looker / Data Studio / Supabase  
@@ -636,6 +617,7 @@ The following roadmap outlines planned enhancements and long-term improvements f
 ---
 
 ### **4. Custom Severity Models**
+
 - Organization-specific scoring weights  
 - Multi-factor scoring (technical complexity, dependency load, budget risk)  
 - Dynamic severity adjustment based on historical outcomes  
@@ -643,6 +625,7 @@ The following roadmap outlines planned enhancements and long-term improvements f
 ---
 
 ### **5. Expanded Reporting Capabilities**
+
 - Multi-section PDF reports with appendices  
 - Optional CSV exports for BI pipelines  
 - Richer Google Docs templates with branded components  
@@ -651,6 +634,7 @@ The following roadmap outlines planned enhancements and long-term improvements f
 ---
 
 ### **6. Enterprise Workflow Extensions**
+
 - SOC2-friendly audit pipeline with stricter logging  
 - Role-based access controls for report visibility  
 - Internal API endpoints for triggering runs programmatically  
@@ -659,6 +643,7 @@ The following roadmap outlines planned enhancements and long-term improvements f
 ---
 
 ### **7. Multi-Language Support**
+
 - English + Spanish + German report outputs  
 - Localization for risk categories and scoring definitions  
 - Model-based translation consistency checks  
@@ -666,6 +651,7 @@ The following roadmap outlines planned enhancements and long-term improvements f
 ---
 
 ### **8. On-Prem / VPC Deployment Option**
+
 - Self-hosted inference endpoint for regulated environments  
 - Private network execution with secrets isolation  
 - Enterprise security posture alignment  
@@ -673,6 +659,7 @@ The following roadmap outlines planned enhancements and long-term improvements f
 ---
 
 ### **9. Model Optimization & Alternative LLMs**
+
 - Fine-tuned mini-model for scoring layer  
 - Mixed-model inference routing based on complexity  
 - Optional Anthropic or Azure OpenAI compatibility modes  
@@ -680,6 +667,7 @@ The following roadmap outlines planned enhancements and long-term improvements f
 ---
 
 ### **10. Collaboration & Feedback Loop**
+
 - Reviewer comments directly inside the report  
 - Feedback ingestion to refine future scoring  
 - Team-based consensus scoring panels  
@@ -828,6 +816,7 @@ The system defines three core schemas:
 ---
 
 ### **1. Risk Output Schema**
+
 Path: `/schemas/risk_output.schema.json`
 
 Defines the structure of a single risk object, including:
@@ -845,6 +834,7 @@ This schema ensures every risk follows the same format and value constraints.
 ---
 
 ### **2. Scoring Schema**
+
 Path: `/schemas/scoring.schema.json`
 
 Defines the allowed values and constraints for:
@@ -858,6 +848,7 @@ This schema guarantees consistent scoring across all runs.
 ---
 
 ### **3. Metadata Schema**
+
 Path: `/schemas/metadata.schema.json`
 
 Defines the structure of execution-level metadata, such as:
@@ -893,7 +884,8 @@ Each prompt is designed to enforce schema compliance, reduce ambiguity, and impr
 
 ---
 
-### **1. Discovery Prompt (GPT-5.1)**  
+### **1. Discovery Prompt (GPT-5.1)**
+
 *Identifies raw risk candidates from the project description.*
 
 Purpose: Generate a broad, structured list of potential risks before scoring.
@@ -919,7 +911,8 @@ Prompt:
 
 ---
 
-### **2. Scoring Prompt (GPT-4.1)**  
+### **2. Scoring Prompt (GPT-4.1)**
+
 *Applies probability, impact, and severity values using deterministic rules.*
 
 Purpose: Enforce consistent, rule-based scoring.
@@ -957,7 +950,8 @@ Prompt:
 
 ---
 
-### **3. Summary Prompt (GPT-4o)**  
+### **3. Summary Prompt (GPT-4o)**
+
 *Generates an executive-ready narrative summarizing major risks.*
 
 Purpose: Produce leadership-focused takeaways.
