@@ -9,6 +9,8 @@ Each stage produces a contract-bound artifact that is consumed by downstream com
 
 # 1. High-Level Data Flow
 
+The following diagram provides a high-level conceptual flow of the PreMortem AI pipeline.
+
 ```text
 +--------------------------------------+
 |          Project Description          |
@@ -140,7 +142,7 @@ Input:
 LLM Interaction:
   - Executive-level narrative synthesis representing the overall project risk posture
 
-Processing
+Processing:
 
 - Health score calculation
 - Prioritization of top-risk narratives
@@ -156,13 +158,14 @@ Output:
 The orchestrator constructs the final output:
 ```
 RiskReport:
-  risks: [...]         # canonical risk entities
-  scores: [...]        # probability / impact scoring outputs
-  themes: [...]        # normalized cross-risk themes
-  mitigations: [...]   # recommended actions
-  summary: {...}       # executive-level narrative
-  metadata: {...}      # execution + model metadata
+risks: [...]          # canonicalized risk entities
+scores: [...]         # probability / impact modeling outputs
+themes: [...]         # cross-risk pattern abstractions
+mitigations: [...]    # actionable mitigation recommendations
+summary: {...}        # executive-level narrative synthesis
+metadata: {...}       # runtime context + inference metadata
 ```
+
 All fields undergo a final validation pass against `risk_report.schema.json` to ensure structural integrity, contract fidelity, and safe downstream consumption.
 
 ---
