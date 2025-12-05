@@ -9,7 +9,7 @@
     {
       "name": "extract_input",
       "type": "code",
-      "code": "// Ensure safe extraction of project description\nconst desc = event.body?.project_description;\n\nif (!desc) {\n  throw new Error(\"Missing required field: project_description\");\n}\n\nreturn {\n  project_description: desc\n};"
+      "code": "// Safely extract and validate project description\nconst desc = event.body?.project_description;\n\nif (!desc || typeof desc !== 'string' || desc.trim().length === 0) {\n  throw new Error(\"Invalid or missing field: project_description\");\n}\n\nreturn {\n  project_description: desc.trim()\n};"
     },
 
     {
@@ -72,7 +72,7 @@
     {
       "name": "respond",
       "type": "code",
-      "code": "// Return entire pipeline result\nreturn {\n  project_description: steps.extract_input.project_description,\n  discovered_risks: steps.discover_risks,\n  scored_risks: steps.score_risks,\n  themes: steps.cluster_themes,\n  mitigations: steps.generate_mitigations,\n  summary: steps.generate_summary,\n  final_report: steps.assemble_final_report,\n  status: \"success\"\n};"
+      "code": "// Return complete structured pipeline results in one body\nreturn {\n  status: \"success\",\n  project_description: steps.extract_input.project_description,\n  discovered_risks: steps.discover_risks,\n  scored_risks: steps.score_risks,\n  themes: steps.cluster_themes,\n  mitigations: steps.generate_mitigations,\n  summary: steps.generate_summary,\n  final_report: steps.assemble_final_report\n};"
     }
   ]
 }
