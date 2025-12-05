@@ -1,0 +1,166 @@
+name: summary
+version: "1.0.0"
+
+description: >
+  Produces a concise executive summary synthesizing the major risk patterns,
+  severity distribution, and recommended mitigation focus areas. This component
+  outputs a structured summary object that is consumed by the final_report
+  and pdf_export steps within the PreMortem AI pipeline.
+
+  # Input shape (example):
+  # {
+  #   "risks": [...],        # scored risks
+  #   "themes": [...],       # clustered themes
+  #   "mitigations": [...]   # mitigation strategy objects
+  # }
+
+  # Output shape (example):
+  # {
+  #   "summary": {
+  #     "overview": "High-level narrative...",
+  #     "key_themes": ["Theme A", "Theme B"],
+  #     "top_risks": [
+  #       { "id": "risk-001", "title": "string", "severity_score": 9 }
+  #     ],
+  #     "recommended_focus": "Strategic advice and directional guidance..."
+  #   }
+  # }
+
+type: action
+displayName: Summary – Executive Risk Summary
+packageName: premortem-ai
+icon: https://raw.githubusercontent.com/matthewvannicola/premortem-ai/main/assets/icon.png
+
+props:
+  risks:
+    type: object
+    label: Scored Risks Array
+    description: Full list of scored risks.
+    required: true
+
+  themes:
+    type: object
+    label: Themes Array
+    description: High-level themes produced by the themes step.
+    required: true
+
+  mitigations:
+    type: object
+    label: Mitigations Array
+    description: Mitigation strategy objects generated from the mitigation step.
+    required: true
+
+run:
+  async (context) => {
+
+    //
+    // -------------------------------
+    // INPUT VALIDATION
+    // -------------------------------
+    //
+    const { risks, themes, mitigations } = context.props;
+
+    if (!Array.isArray(risks) || risks.length === 0) {
+      throw new Error("Input 'risks' must be a non-empty array.");
+    }
+
+    if (!Array.isArray(themes) || themes.length === 0) {
+      throw new Error("Input 'themes' must be a non-empty array.");
+    }
+
+    if (!Array.isArray(mitigations) || mitigations.length === 0) {
+      throw new Error("Input 'mitigations' must be a non-empty array.");
+    }
+
+    //
+    // -------------------------------
+    // NORMALIZATION
+    // -------------------------------
+    //
+    const normalized = {
+      risks: risks.map((r) => ({
+        ...r,
+        title: typeof r.title === "string" ? r.title.normalize("NFKC").trim() : r.title,
+        description: typeof r.description === "string" ? r.description.normalize("NFKC").trim() : r.description
+      })),
+      themes,
+      mitigations
+    };
+
+    //
+    // -------------------------------
+    // LLM PROMPT
+    // -------------------------------
+    //
+    const prompt = `
+You are PreMortem AI. Generate an executive summary of the risk landscape.
+
+Your summary MUST include:
+- "overview": A 3–5 sentence high-level narrative summarizing the project risk posture.
+- "key_themes": A list of the most critical theme names (3–7 items).
+- "top_risks": The 3–5 highest-severity risks (objects with id, title, severity_score).
+- "recommended_focus": Strategic and actionable guidance for leadership.
+
+Rules:
+- Be concise but insightful.
+- Reference patterns, not individual details unless high severity.
+- Return ONLY valid JSON in the requested structure.
+
+Input Data:
+${JSON.stringify(normalized, null, 2)}
+`;
+
+    //
+    // -------------------------------
+    // LLM EXECUTION
+    // -------------------------------
+    //
+    const response = await context.$ai.run("gpt-4.1", {
+      messages: [
+        { role: "system", content: "You are an AI executive summary generator." },
+        { role: "user", content: prompt }
+      ],
+      response_format: {
+        type: "json_schema",
+        schema: {
+          type: "object",
+          properties: {
+            summary: {
+              type: "object",
+              properties: {
+                overview: { type: "string" },
+                key_themes: {
+                  type: "array",
+                  items: { type: "string" }
+                },
+                top_risks: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      id: { type: "string" },
+                      title: { type: "string" },
+                      severity_score: { type: "number" }
+                    },
+                    required: ["id", "title", "severity_score"]
+                  }
+                },
+                recommended_focus: { type: "string" }
+              },
+              required: ["overview", "key_themes", "top_risks", "recommended_focus"]
+            }
+          },
+          required: ["summary"]
+        }
+      }
+    });
+
+    //
+    // -------------------------------
+    // RETURN OUTPUT
+    // -------------------------------
+    //
+    return {
+      summary: response.summary
+    };
+  }
