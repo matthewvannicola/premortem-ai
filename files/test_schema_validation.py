@@ -1,76 +1,58 @@
 import json
 import pytest
-from src.utils.validate_schema import validate_against_schema
+from src.utils.validate_schema import validate_json
 
-# Path to your schema file
-SCHEMA_PATH = "schemas/risk_output.schema.json"
-
-# Load schema once for all tests
-with open(SCHEMA_PATH, "r") as f:
-    SCHEMA = json.load(f)
+# Load the schema for testing
+with open("schemas/risk_output.schema.json", "r") as f:
+    RISK_SCHEMA = json.load(f)
 
 
-def test_valid_output_passes_validation():
-    """A correct JSON structure should pass."""
-    sample = {
-        "risk_items": [
-            {
-                "id": "R-001",
-                "title": "Unclear requirements",
-                "severity": 3,
-                "probability": "Medium",
-                "impact": "High",
-                "category": "Requirements",
-                "details": "Ambiguity in specification",
-                "mitigation": "Clarify scope with stakeholders"
-            }
-        ],
-        "summary": {
-            "total_risks": 1,
-            "highest_severity": 3
-        }
+def test_valid_risk_output_passes_validation():
+    """A fully valid risk output JSON should pass schema validation."""
+
+    valid_item = {
+        "id": "RISK-001",
+        "category": "technical",
+        "probability": "medium",
+        "impact": "high",
+        "severity": 4,
+        "description": "API dependency may fail under high load.",
+        "mitigation": "Implement caching + fallback."
     }
 
-    result = validate_against_schema(sample, SCHEMA)
-    assert result.is_valid, f"Validation failed: {result.errors}"
+    # Should NOT raise any exception
+    validate_json(valid_item, RISK_SCHEMA)
 
 
-def test_missing_required_field_fails():
-    """Removing mandatory fields should fail schema validation."""
-    bad_sample = {
-        "risk_items": [
-            {
-                "title": "Missing ID field"
-            }
-        ]
+def test_invalid_enum_fails_validation():
+    """Invalid probability or impact values should fail validation."""
+
+    invalid_item = {
+        "id": "RISK-XYZ",
+        "category": "technical",
+        "probability": "sometimes",  # ❌ invalid enum
+        "impact": "high",
+        "severity": 3,
+        "description": "Bad enum value",
+        "mitigation": "Fix enums"
     }
 
-    result = validate_against_schema(bad_sample, SCHEMA)
-    assert not result.is_valid
-    assert "id" in result.errors[0].lower()
+    with pytest.raises(Exception):
+        validate_json(invalid_item, RISK_SCHEMA)
 
 
-def test_invalid_enum_value_fails():
-    """Ensure enums are enforced correctly."""
-    bad_sample = {
-        "risk_items": [
-            {
-                "id": "R-002",
-                "title": "Risk with invalid probability",
-                "severity": 2,
-                "probability": "Unknown",  # invalid enum
-                "impact": "Low",
-                "category": "Requirements",
-                "details": "Testing enum failure",
-                "mitigation": "Fix enum"
-            }
-        ],
-        "summary": {
-            "total_risks": 1,
-            "highest_severity": 2
-        }
+def test_missing_required_field_fails_validation():
+    """Items missing required fields should fail."""
+
+    invalid_item = {
+        # "id" missing ❌
+        "category": "operational",
+        "probability": "low",
+        "impact": "low",
+        "severity": 1,
+        "description": "Missing required field",
+        "mitigation": "Add the field"
     }
 
-    result = validate_against_schema(bad_sample, SCHEMA)
-    assert not result.is_valid
-    assert "probability" in result.errors[0].lower()
+    with pytest.raises(Exception):
+        validate_json(invalid_item, RISK_SCHEMA)
