@@ -14,12 +14,6 @@ This repository documents the system’s architecture, schemas, example outputs,
 
 ---
 
-## System Architecture
-
-PreMortem AI operates across five core layers:
-
----
-
 ### **1. Intake & Trigger**
 
 - Google Sheets stores project descriptions and metadata  
