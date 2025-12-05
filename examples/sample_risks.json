@@ -1,0 +1,112 @@
+[
+  {
+    "id": "risk-001",
+    "title": "Inconsistent Data Schemas",
+    "description": "Several legacy SQL databases use inconsistent table and field structures, which may lead to incorrect joins, mismatched data fields, or failed ETL jobs during aggregation.",
+    "category": "technical",
+    "probability": 0.68,
+    "impact": 5,
+    "llm_score": 4,
+    "human_score": null,
+    "mitigation": null
+  },
+  {
+    "id": "risk-002",
+    "title": "Dependency Delays from Salesforce and Snowflake Teams",
+    "description": "Salesforce and Snowflake integration relies on external teams with unpredictable ticket turnaround times, which could block critical-path development and delay the MVP timeline.",
+    "category": "organizational",
+    "probability": 0.55,
+    "impact": 4,
+    "llm_score": 4,
+    "human_score": null,
+    "mitigation": null
+  },
+  {
+    "id": "risk-003",
+    "title": "Unstable Real-Time ETL Expectations",
+    "description": "Stakeholders expect near-real-time updates, but current data sources and ETL infrastructure may not reliably support the required frequency or latency, risking performance issues or incomplete data.",
+    "category": "technical",
+    "probability": 0.62,
+    "impact": 4,
+    "llm_score": 3,
+    "human_score": null,
+    "mitigation": null
+  },
+  {
+    "id": "risk-004",
+    "title": "Data Quality Ownership Gaps",
+    "description": "No single team owns end-to-end data quality across systems, increasing the likelihood that inaccurate, stale, or conflicting data will propagate into customer insights or executive dashboards.",
+    "category": "organizational",
+    "probability": 0.47,
+    "impact": 5,
+    "llm_score": 4,
+    "human_score": null,
+    "mitigation": null
+  },
+  {
+    "id": "risk-005",
+    "title": "UI/UX Delays Blocking Development",
+    "description": "The design team has not delivered the final UI/UX, which may force engineers to rework frontend components or block feature development waiting for finalized layouts.",
+    "category": "project",
+    "probability": 0.59,
+    "impact": 3,
+    "llm_score": 3,
+    "human_score": null,
+    "mitigation": null
+  },
+  {
+    "id": "risk-006",
+    "title": "Security Review Delays",
+    "description": "Security reviews historically extend by 1–2 weeks depending on findings, potentially impacting deployment windows and delaying production rollout.",
+    "category": "security",
+    "probability": 0.44,
+    "impact": 4,
+    "llm_score": 3,
+    "human_score": null,
+    "mitigation": null
+  },
+  {
+    "id": "risk-007",
+    "title": "Sales Team Field Instability",
+    "description": "Frequent changes to Salesforce and Sales Ops field names could break data mappings, dashboards, and ETL pipelines, leading to outages or inaccurate analytics.",
+    "category": "process",
+    "probability": 0.71,
+    "impact": 4,
+    "llm_score": 4,
+    "human_score": null,
+    "mitigation": null
+  },
+  {
+    "id": "risk-008",
+    "title": "Performance Bottlenecks in Dashboard Rendering",
+    "description": "High query load combined with complex filtering could lead to slow dashboard rendering times, failing the requirement of sub-3-second load speed for most queries.",
+    "category": "technical",
+    "probability": 0.52,
+    "impact": 4,
+    "llm_score": 3,
+    "human_score": null,
+    "mitigation": null
+  },
+  {
+    "id": "risk-009",
+    "title": "PDF Export Branding Failures",
+    "description": "The requirement for PDF exports to match strict corporate branding may result in unexpected iteration cycles or require specialized rendering libraries that slow progress.",
+    "category": "compliance",
+    "probability": 0.33,
+    "impact": 3,
+    "llm_score": 2,
+    "human_score": null,
+    "mitigation": null
+  },
+  {
+    "id": "risk-010",
+    "title": "Limited Backend Engineering Capacity",
+    "description": "Only two backend engineers are available for a multi-integration MVP, increasing the risk of burnout, delays, or reduced feature quality under timeline pressure.",
+    "category": "resource",
+    "probability": 0.58,
+    "impact": 5,
+    "llm_score": 4,
+    "human_score": null,
+    "mitigation": null
+  }
+]
