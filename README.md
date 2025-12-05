@@ -484,11 +484,6 @@ Below is a text-based representation of the system diagram.
 
 ---
 
-## Architecture Overview
-
-PreMortem AI is built as a modular, event-driven pipeline. Each layer is responsible for a specific part of the flow, and data is validated before moving to the next stage. This makes the system predictable, traceable, and reliable in an enterprise environment.
-
----
 
 ### 1. Intake Layer
 **Google Sheets → Pipedream Trigger**
@@ -819,7 +814,7 @@ When the workflow completes, you will see:
   - timestamps  
   - retry counts  
   - links to generated reports  
-  - cleaned fi
+  - cleaned final dataset
 
 ---
 
