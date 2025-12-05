@@ -1,0 +1,46 @@
+{
+  "name": "PreMortem AI – PDF Export Pipeline",
+  "description": "Generates a polished downloadable PDF from the completed PreMortem AI final report using deterministic formatting and export components.",
+  "trigger": {
+    "type": "http",
+    "name": "pdf_export_request"
+  },
+
+  "steps": [
+    {
+      "name": "validate_payload",
+      "type": "code",
+      "code": "// Validate incoming request for PDF generation\nconst report = event.body?.final_report;\n\nif (!report) {\n  throw new Error(\"Missing required field: final_report\");\n}\n\nreturn { report };"
+    },
+
+    {
+      "name": "normalize_report",
+      "type": "code",
+      "code": "// Normalization utility\nfunction norm(v) {\n  if (!v) return v;\n  if (typeof v === \"string\") return v.normalize(\"NFKC\").trim();\n  return v;\n}\n\nconst r = steps.validate_payload.report;\n\nreturn {\n  risks: Array.isArray(r.risks) ? r.risks : [],\n  themes: Array.isArray(r.themes) ? r.themes : [],\n  mitigations: Array.isArray(r.mitigations) ? r.mitigations : [],\n  summary: norm(r.summary),\n  meta: {\n    project_title: norm(r.meta?.project_title) || \"PreMortem AI Report\",\n    generated_at: r.meta?.generated_at || new Date().toISOString(),\n    workflow_run_id: r.meta?.workflow_run_id || null\n  }\n};"
+    },
+
+    {
+      "name": "generate_pdf",
+      "type": "component",
+      "component": "matthewvannicola/premortem-ai/pipedream/components/pdf_export",
+      "retry": {
+        "count": 4,
+        "delay": 750,
+        "factor": 2
+      },
+      "props": {
+        "risks": "{{steps.normalize_report.risks}}",
+        "themes": "{{steps.normalize_report.themes}}",
+        "mitigations": "{{steps.normalize_report.mitigations}}",
+        "summary": "{{steps.normalize_report.summary}}",
+        "meta": "{{steps.normalize_report.meta}}"
+      }
+    },
+
+    {
+      "name": "respond",
+      "type": "code",
+      "code": "// Return final PDF export output\nreturn {\n  status: \"pdf_generated\",\n  pdf_base64: steps.generate_pdf.pdf_base64,\n  filename: steps.generate_pdf.filename || \"premortem_report.pdf\",\n  meta: steps.normalize_report.meta\n};"
+    }
+  ]
+}
