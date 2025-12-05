@@ -1,21 +1,28 @@
 {
   "name": "PreMortem AI – Retry Pipeline",
-  "description": "Retries a failed PreMortem AI step using exponential backoff and Pipedream component execution.",
+  "description": "Retries a failed PreMortem AI step using exponential backoff, normalization, and deterministic component execution.",
   "trigger": {
     "type": "http",
     "name": "retry_request"
   },
+
   "steps": [
     {
       "name": "extract_retry_payload",
       "type": "code",
-      "code": "// Validate incoming retry request\nconst failed = event.body?.failed_step;\nconst payload = event.body?.input_payload;\n\nif (!failed) throw new Error(\"Missing required field: failed_step\");\nif (!payload) throw new Error(\"Missing required field: input_payload\");\n\nreturn {\n  failed_step: failed,\n  input_payload: payload\n};"
+      "code": "// Validate incoming retry request\nconst failed = event.body?.failed_step;\nconst payload = event.body?.input_payload;\n\nif (!failed) throw new Error(\"Retry request missing required field: failed_step\");\nif (!payload) throw new Error(\"Retry request missing required field: input_payload\");\n\nreturn {\n  failed_step: failed,\n  input: payload\n};"
+    },
+
+    {
+      "name": "normalize_input",
+      "type": "code",
+      "code": "// Normalization utility\nfunction norm(v) {\n  if (!v) return v;\n  if (typeof v === \"string\") return v.normalize(\"NFKC\").trim();\n  return v;\n}\n\nconst input = steps.extract_retry_payload.input;\n\nreturn {\n  project_description: norm(input.project_description),\n  risks: input.risks || [],\n  themes: input.themes || [],\n  mitigations: input.mitigations || [],\n  summary: norm(input.summary)\n};"
     },
 
     {
       "name": "determine_route",
       "type": "code",
-      "code": "// Confirm we recognize this pipeline step\nconst step = steps.extract_retry_payload.failed_step;\n\nconst VALID = [\n  \"discovery\",\n  \"scoring\",\n  \"themes\",\n  \"mitigation\",\n  \"summary\",\n  \"final_report\"\n];\n\nif (!VALID.includes(step)) {\n  throw new Error(`Unknown pipeline step: ${step}`);\n}\n\nreturn { rerun: step };"
+      "code": "// Confirm valid step name\nconst step = steps.extract_retry_payload.failed_step;\n\nconst VALID = [\n  \"discovery\",\n  \"scoring\",\n  \"themes\",\n  \"mitigation\",\n  \"summary\",\n  \"final_report\"\n];\n\nif (!VALID.includes(step)) {\n  throw new Error(`Retry pipeline received unknown step: ${step}`);\n}\n\nreturn { rerun: step };"
     },
 
     {
@@ -24,7 +31,7 @@
       "branches": [
         {
           "name": "retry_discovery",
-          "condition": "{{steps.determine_route.rerun === 'discovery'}}",
+          "condition": "{{steps.determine_route.rerun == \"discovery\"}}",
           "steps": [
             {
               "name": "run_discovery_retry",
@@ -36,14 +43,14 @@
                 "factor": 2
               },
               "props": {
-                "project_description": "{{steps.extract_retry_payload.input_payload.project_description}}"
+                "project_description": "{{steps.normalize_input.project_description}}"
               }
             }
           ]
         },
         {
           "name": "retry_scoring",
-          "condition": "{{steps.determine_route.rerun === 'scoring'}}",
+          "condition": "{{steps.determine_route.rerun == \"scoring\"}}",
           "steps": [
             {
               "name": "run_scoring_retry",
@@ -55,14 +62,14 @@
                 "factor": 2
               },
               "props": {
-                "risks": "{{steps.extract_retry_payload.input_payload.risks}}"
+                "risks": "{{steps.normalize_input.risks}}"
               }
             }
           ]
         },
         {
           "name": "retry_themes",
-          "condition": "{{steps.determine_route.rerun === 'themes'}}",
+          "condition": "{{steps.determine_route.rerun == \"themes\"}}",
           "steps": [
             {
               "name": "run_themes_retry",
@@ -74,14 +81,14 @@
                 "factor": 2
               },
               "props": {
-                "risks": "{{steps.extract_retry_payload.input_payload.risks}}"
+                "risks": "{{steps.normalize_input.risks}}"
               }
             }
           ]
         },
         {
           "name": "retry_mitigation",
-          "condition": "{{steps.determine_route.rerun === 'mitigation'}}",
+          "condition": "{{steps.determine_route.rerun == \"mitigation\"}}",
           "steps": [
             {
               "name": "run_mitigation_retry",
@@ -93,14 +100,14 @@
                 "factor": 2
               },
               "props": {
-                "risks": "{{steps.extract_retry_payload.input_payload.risks}}"
+                "risks": "{{steps.normalize_input.risks}}"
               }
             }
           ]
         },
         {
           "name": "retry_summary",
-          "condition": "{{steps.determine_route.rerun === 'summary'}}",
+          "condition": "{{steps.determine_route.rerun == \"summary\"}}",
           "steps": [
             {
               "name": "run_summary_retry",
@@ -112,14 +119,14 @@
                 "factor": 2
               },
               "props": {
-                "risks": "{{steps.extract_retry_payload.input_payload.risks}}"
+                "risks": "{{steps.normalize_input.risks}}"
               }
             }
           ]
         },
         {
           "name": "retry_final_report",
-          "condition": "{{steps.determine_route.rerun === 'final_report'}}",
+          "condition": "{{steps.determine_route.rerun == \"final_report\"}}",
           "steps": [
             {
               "name": "run_final_report_retry",
@@ -131,10 +138,10 @@
                 "factor": 2
               },
               "props": {
-                "risks": "{{steps.extract_retry_payload.input_payload.risks}}",
-                "themes": "{{steps.extract_retry_payload.input_payload.themes}}",
-                "mitigations": "{{steps.extract_retry_payload.input_payload.mitigations}}",
-                "summary": "{{steps.extract_retry_payload.input_payload.summary}}"
+                "risks": "{{steps.normalize_input.risks}}",
+                "themes": "{{steps.normalize_input.themes}}",
+                "mitigations": "{{steps.normalize_input.mitigations}}",
+                "summary": "{{steps.normalize_input.summary}}"
               }
             }
           ]
@@ -145,7 +152,7 @@
     {
       "name": "respond",
       "type": "code",
-      "code": "// Capture the branch that executed successfully\nconst branch = steps.branch_step_type;\n\n// Locate whichever branch returned output\nlet output = null;\nfor (const key in branch) {\n  if (branch[key] && typeof branch[key] === 'object') {\n    output = branch[key];\n  }\n}\n\nreturn {\n  status: \"retry_success\",\n  step: steps.determine_route.rerun,\n  output\n};"
+      "code": "// Return deterministic branch output\nconst step = steps.determine_route.rerun;\nconst branch = steps.branch_step_type[step];\n\nif (!branch) {\n  throw new Error(`Retry executed, but no output detected for step: ${step}`);\n}\n\nreturn {\n  status: \"retry_success\",\n  rerun_step: step,\n  output: branch\n};"
     }
   ]
 }
