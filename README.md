@@ -3,7 +3,7 @@ Automated risk-analysis system using LLM inference, workflow orchestration, and 
 
 ---
 
-## 📌 Overview  
+##  Overview  
 PreMortem AI is a modular, event-driven automation system that transforms project descriptions into structured risk intelligence.  
 The system integrates LLM processing, workflow orchestration, scoring logic, and automated reporting into one cohesive, enterprise-ready architecture.
 
@@ -11,7 +11,7 @@ This repository documents the system's architecture, schemas, example outputs, a
 
 ---
 
-## ✨ Key Features
+##  Key Features
 - Deterministic risk generation using structured LLM prompts  
 - Multi-pass inference for high-severity risk detection  
 - End-to-end orchestration with retries, recovery, and logging  
@@ -21,7 +21,7 @@ This repository documents the system's architecture, schemas, example outputs, a
 
 ---
 
-## ⚙️ System Architecture  
+##  System Architecture  
 
 PreMortem AI operates across five core layers:
 
