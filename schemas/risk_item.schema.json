@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PreMortem Risk Item",
+  "description": "A single risk item identified by the PreMortem AI system.",
+  "type": "object",
+
+  "required": [
+    "id",
+    "title",
+    "description",
+    "category",
+    "probability",
+    "impact",
+    "llm_score"
+  ],
+
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique risk identifier, typically a UUID or short token."
+    },
+
+    "title": {
+      "type": "string",
+      "description": "Human-readable descriptive title for the risk."
+    },
+
+    "description": {
+      "type": "string",
+      "description": "Detailed explanation of the risk scenario."
+    },
+
+    "category": {
+      "type": "string",
+      "description": "High-level risk category.",
+      "enum": [
+        "technical",
+        "operational",
+        "product",
+        "organizational",
+        "external",
+        "security",
+        "other"
+      ]
+    },
+
+    "probability": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Likelihood of risk occurring, between 0 and 1."
+    },
+
+    "impact": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Impact severity if risk occurs, 1 to 5 scale."
+    },
+
+    "llm_score": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Raw severity score predicted by the LLM before rule-based adjustments."
+    },
+
+    "human_score": {
+      "type": ["number", "null"],
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Optional human-provided score used in blended severity calculation."
+    },
+
+    "mitigation": {
+      "type": ["string", "null"],
+      "description": "Optional mitigation strategy or recommended action."
+    }
+  },
+
+  "additionalProperties": false
+}
