@@ -20,7 +20,7 @@ This repository documents the system’s architecture, schemas, example outputs,
 
 ---
 
-### **1. Intake & Trigger**
+### **Intake & Trigger**
 
 - Google Sheets stores project descriptions and metadata  
 - Pipedream monitors updates and triggers the workflow pipeline  
@@ -28,7 +28,7 @@ This repository documents the system’s architecture, schemas, example outputs,
 
 ---
 
-### **2. LLM Inference**
+### **LLM Inference**
 
 - GPT-5.1 (fallback to GPT-4.1) processes structured prompts  
 - Deterministic JSON schemas ensure consistent, machine-readable outputs  
@@ -36,7 +36,7 @@ This repository documents the system’s architecture, schemas, example outputs,
 
 ---
 
-### **3. Workflow Orchestration**
+### **Workflow Orchestration**
 
 - Pipedream manages step-by-step logic, retries, and dynamic routing  
 - Error-handling rules isolate failed tasks and perform intelligent recovery  
@@ -44,7 +44,7 @@ This repository documents the system’s architecture, schemas, example outputs,
 
 ---
 
-### **4. Data Processing & Scoring**
+### **Data Processing & Scoring**
 
 - Outputs are parsed, categorized, and assigned severity scores  
 - Cross-team scoring logic ensures alignment and repeatability  
@@ -52,7 +52,7 @@ This repository documents the system’s architecture, schemas, example outputs,
 
 ---
 
-### **5. Reporting & Documentation**
+### **Reporting & Documentation**
 
 - Automated PDF generation produces standardized, executive-ready briefs  
 - Reports and datasets are logged into Notion for versioning and visibility  
@@ -1004,4 +1004,11 @@ Feel free to reach out for project collaborations, architecture questions, workf
 
 ---
 
-LISCENSE
+This project is licensed under the MIT License — see the LICENSE file for details.
+
+---
+
+## Contributions
+
+Contributions, suggestions, or improvements are welcome.
+Feel free to open an issue or submit a pull request.
