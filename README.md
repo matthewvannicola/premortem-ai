@@ -1,5 +1,7 @@
 # PreMortem AI 
 
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+
 Automated risk-analysis system using LLM inference, workflow orchestration, and structured data pipelines.
 
 ---
@@ -1005,7 +1007,7 @@ Feel free to reach out for project collaborations, architecture questions, workf
 
 ---
 
-This project is licensed under the MIT License — see the LICENSE file for details.
+This project is licensed under the [MIT License](./LICENSE). See the LICENSE file for details.
 
 ---
 
