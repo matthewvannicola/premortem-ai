@@ -1,67 +1,85 @@
 """
 pipeline_response.py
 
-Enterprise-grade canonical response model for the PreMortem AI analysis pipeline.
+Defines the canonical output model for the PreMortem AI pipeline.
 
-Enhancements:
-    • Clearer documentation
-    • Defensive from_report constructor
-    • Guaranteed serialization stability
-    • Future-proofing hooks for metadata or diagnostics
+This model is returned by:
+    - FastAPI endpoint
+    - CLI tool
+    - Any internal automation
+
+It is constructed from a PipelineContext produced by run_pipeline().
 """
 
-from pydantic import Field
 
-from premortem_ai.models.risk_report import RiskReport
-from .base_model import CanonicalModel
+from typing import List, Dict, Any, Optional
+from pydantic import BaseModel, Field
+
+from premortem_ai.models.risk_item import RiskItem
+from premortem_ai.models.score_item import ScoreItem
+from premortem_ai.models.theme_item import ThemeItem
+from premortem_ai.models.mitigation_item import MitigationItem
+from premortem_ai.models.summary_item import SummaryItem
 
 
-class PipelineResponse(CanonicalModel):
+class PipelineResponse(BaseModel):
     """
-    Canonical response envelope for the PreMortem AI pipeline.
-
-    Returned by:
-        • analysis_service
-        • orchestrator (public interface)
-        • REST API endpoints
-        • CLI workflow runners
-        • automated job runners (Pipedream, Make.com)
-
-    This object must remain a stable, versioned contract for all consumers.
+    Structured, validated, API-safe container for all pipeline outputs.
     """
 
-    report: RiskReport = Field(
-        ...,
-        description=(
-            "Fully validated RiskReport object representing the complete output "
-            "of the PreMortem AI pipeline."
-        ),
+    risks: Dict[str, RiskItem] = Field(
+        ..., description="All discovered risks indexed by risk_id."
+    )
+
+    scores: Dict[str, ScoreItem] = Field(
+        ..., description="Scoring results for each risk."
+    )
+
+    themes: List[ThemeItem] = Field(
+        ..., description="Clustered thematic groupings of risks."
+    )
+
+    mitigations: List[MitigationItem] = Field(
+        ..., description="Generated mitigation strategies for each risk."
+    )
+
+    summary: SummaryItem = Field(
+        ..., description="Executive summary synthesizing the entire analysis output."
+    )
+
+    stage_timings: Dict[str, float] = Field(
+        default_factory=dict,
+        description="Execution time (seconds) for each pipeline stage."
+    )
+
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Original PipelineRequest fields and supplemental metadata."
     )
 
     # ------------------------------------------------------------------
-    # Constructors
+    # Construction helper
     # ------------------------------------------------------------------
+
     @classmethod
-    def from_report(cls, report: RiskReport):
+    def from_context(cls, context) -> "PipelineResponse":
         """
-        Wrap a RiskReport in a PipelineResponse.
+        Convert the PipelineContext produced by run_pipeline() into a
+        hardened, API-safe PipelineResponse Pydantic model.
 
-        Provides:
-            • deterministic wrapping
-            • strict validation before returning to external clients
-        """
-        if not isinstance(report, RiskReport):
-            raise TypeError(
-                f"PipelineResponse.from_report expected RiskReport, received {type(report)}"
-            )
-        return cls(report=report)
+        Args:
+            context: PipelineContext object
 
-    # ------------------------------------------------------------------
-    # Serialization
-    # ------------------------------------------------------------------
-    def to_dict(self):
+        Returns:
+            PipelineResponse instance
         """
-        Return a clean, deterministic JSON representation suitable for
-        external APIs, logging, storage, dashboards, or PDF generation.
-        """
-        return self.model_dump()
+
+        return cls(
+            risks=context.risks,
+            scores=context.scores,
+            themes=context.themes,
+            mitigations=context.mitigations,
+            summary=context.summary,
+            stage_timings=context.stage_timings,
+            metadata=context.request_metadata,
+        )
