@@ -1,28 +1,10 @@
 """
-Pipeline execution layer for the PreMortem AI system.
+Public pipeline API.
 
-This package coordinates all ordered pipeline stages, including:
-    - Risk Discovery
-    - Scoring
-    - Theme Clustering
-    - Mitigation Generation
-    - Summary Synthesis
-    - Report Assembly
-
-The pipeline modules are responsible for:
-    - Orchestrating domain components
-    - Managing execution context
-    - Enforcing schema validation
-    - Selecting models consistently
-    - Maintaining deterministic run metadata
-
-External modules should only import high-level orchestration interfaces,
-not individual domain implementations.
+Recommended usage:
+    from premortem_ai.pipelines import run_pipeline
 """
 
-from .orchestrator import PipelineOrchestrator, PipelineExecutionError
+from .orchestrator import run_pipeline
 
-__all__ = [
-    "PipelineOrchestrator",
-    "PipelineExecutionError",
-]
+__all__ = ["run_pipeline"]
