@@ -45,7 +45,7 @@ project_description: string (raw)
 normalized_description: string (stable, deterministic)
 ```
 
-### Deterministim Guarantees:
+### Determinism Guarantees:
 
 Identical input text produces identical normalized output across all environments.
 
@@ -61,7 +61,7 @@ Extracts canonical `Risk` entities from unstructured language using a structured
 
 - Multi-risk extraction from free-form text
 - Enforcing required fields (title, description, category)
-- Assigning deterministic risk_id values
+- Assigning deterministic `risk_id` values
 - Rejecting malformed outputs via schema validation
 
 ### Inputs:
@@ -79,6 +79,7 @@ Extracts canonical `Risk` entities from unstructured language using a structured
   "risks": [ ...canonical Risk entities... ]
 }
 ```
+
 ### Constraints:
 
 - No duplicated risk titles
@@ -112,7 +113,7 @@ Assigns likelihood, impact, and severity to each discovered risk.
 { "scores": [ ...canonical Score entities... ] }
 ```
 
-### Constraints
+### Constraints:
 
 - Likelihood ∈ [1,5]
 - Impact ∈ [1,5]
@@ -156,7 +157,7 @@ Theme grouping logic ensures stable ordering and ID assignment for identical inp
 
 ---
 
-##5. Mitigation Generator
+## 5. Mitigation Generator
 
 ### Purpose:
 
