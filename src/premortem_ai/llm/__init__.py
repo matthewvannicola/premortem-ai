@@ -1,32 +1,67 @@
 """
-LLM Integration Layer for PreMortem AI.
+LLM Integration Layer for PreMortem AI
+--------------------------------------
 
-This package contains all logic related to interacting with large language models,
-including:
+This package centralizes all logic related to interacting with large language
+models. It provides a clean, governed, and stable API surface so that upstream
+systems (orchestrators, services, pipelines) NEVER need to import OpenAI client
+objects directly or manage model selection manually.
 
-    - openai_client     → governed wrapper around OpenAI API calls
-    - model_router      → deterministic model selection & override handling
-    - prompt_router     → (optional) routing of prompt templates by task
-    - parsers           → structured response interpreters for discovery / scoring
+This layer ensures:
+    • Consistent, enterprise-safe model invocation
+    • Deterministic model routing & validation
+    • Clear separation between governance and execution
+    • JSON-mode enforcement (via LLMClient)
+    • Full observability (metrics + tracing)
+    • Future extensibility for multi-model pipelines
 
-The goal of this layer is to isolate all LLM dependencies behind a stable internal API.
+Modules:
+    openai_client:
+        Thin, governed wrapper around the OpenAI Responses API.
+        Provides retry logic, JSON-mode, telemetry, and strict errors.
 
-External modules (orchestrator, services, pipelines) should always import LLM
-functionality from here rather than interacting with the OpenAI client directly.
+    model_router:
+        Centralized model governance.
+        Handles overrides, defaults, validation, and specialized routing
+        (e.g., reasoning vs. summarization model selection).
 
-Example usage:
+    prompt_router (optional future module):
+        If added, would handle selection of prompt templates by task
+        (discovery, scoring, themes, mitigation, summaries, etc.).
 
-    from premortem_ai.llm import get_llm_client, resolve_model_version
+    parsers (optional future module):
+        If added, provides structured response interpreters for converting
+        raw JSON LLM output into the project's Pydantic schema models.
 
+Public API:
+    from premortem_ai.llm import (
+        get_llm_client,
+        resolve_model_version,
+        validate_model,
+        get_reasoning_model,
+        get_summarization_model,
+    )
+
+Downstream code should treat this as the single authoritative entry point for
+all LLM interactions.
 """
 
 from .openai_client import LLMClient, get_llm_client
-from .model_router import resolve_model_version, validate_model, get_reasoning_model
+from .model_router import (
+    resolve_model_version,
+    validate_model,
+    get_reasoning_model,
+    get_summarization_model,
+)
 
 __all__ = [
+    # Client
     "LLMClient",
     "get_llm_client",
+
+    # Routing / Governance
     "resolve_model_version",
     "validate_model",
     "get_reasoning_model",
+    "get_summarization_model",
 ]
