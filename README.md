@@ -20,29 +20,31 @@ PreMortem AI is an end-to-end automated pre-mortem engine that identifies potent
 
 The design follows a domain-driven, layered architecture to ensure extensibility, traceability, and deterministic behavior across LLM runs.
 
+---
+
 ## 2. High-Level Architecture
 
-The system is organized into distinct layers with clear responsibility boundaries:
+The system is built on a domain-driven, layered architecture designed for determinism, extensibility, and strict schema guarantees.
 
-**LLM Integration Layer**
-Abstracts model selection, routing, and structured inference through a controlled OpenAI client.
+**LLM Integration Layer**  
+Handles model routing, structured inference, versioning, and strict schema-validated responses.
 
-**Domain Engines**
-Modular engines responsible for discovery, scoring, mitigation, and summary generation. Each engine is independently testable and uses domain-specific prompts and validators.
+**Domain Engines**  
+Self-contained engines for discovery, scoring, mitigation, and summary. Each domain includes its own prompts, validators, and error boundaries.
 
-**Pipeline Orchestration Layer**
-Modular engines responsible for discovery, scoring, mitigation, and summary generation. Each engine is independently testable and uses domain-specific prompts and validators.
+**Pipeline Orchestration Layer**  
+Defines the execution graph, runs each domain in sequence, manages shared context, enforces reproducibility, and produces the final `PipelineResponse`.
 
-**Core Utilities**
-Shared foundational components including logging, file I/O, ID generation, schema validation, text normalization, and timing instrumentation.
+**Core Utilities**  
+Cross-cutting support modules: logging, ID generation, schema validation, text normalization, file I/O, and timing.
 
-**API and CLI Interfaces**
-Expose the pipeline to external consumers through a FastAPI service and a command-line interface.
+**API + CLI Layer**  
+Public interfaces exposing the pipeline to external systems with clean, stable contracts.
 
-**Configuration Layer**
-Centralizes runtime configuration, model selection defaults, pipeline options, and environment-driven overrides.
+**Configuration Layer**  
+Centralized model defaults, environment overrides, and pipeline feature flags.
 
-The architecture is intentionally model-agnostic and can operate with any LLM that adheres to the required response schemas.
+This architecture cleanly separates concerns and supports rapid extension without breaking existing surfaces.
 
 ---
 
@@ -51,19 +53,22 @@ The architecture is intentionally model-agnostic and can operate with any LLM th
 ```
 premortem_ai/
 │
-├── analysis_service/          # High-level analysis functions consumed by API/CLI
+├── analysis_service/                  # High-level analysis entrypoints consumed by API/CLI
+│   ├── __init__.py
+│   └── service.py
 │
-├── api/                       # Public interfaces
-│   ├── cli.py                 # CLI entrypoint
-│   ├── fastapi_app.py         # REST API service
+├── api/                               # Public interfaces to the pipeline
+│   ├── cli.py                         # CLI entrypoint
+│   ├── fastapi_app.py                 # FastAPI application
+│   ├── model_router.py                # API-level model routing
 │   └── __init__.py
 │
-├── config/                    # System configuration and pipeline settings
-│   ├── settings.py
-│   ├── pipeline_configs.py
+├── config/                            # Centralized configuration
+│   ├── settings.py                    # Environment and global settings
+│   ├── pipeline_configs.py            # Pipeline-level runtime configuration
 │   └── __init__.py
 │
-├── core/                      # Shared foundational components
+├── core/                              # Foundational utilities reused across domains
 │   ├── file_io.py
 │   ├── id_generation.py
 │   ├── logger.py
@@ -73,107 +78,273 @@ premortem_ai/
 │   ├── timer.py
 │   └── __init__.py
 │
-├── domains/                   # Primary business logic organized by domain
-│   ├── discovery/             # Risk extraction
-│   ├── scoring/               # Probability and impact scoring
-│   ├── mitigation/            # Mitigation generation
-│   ├── summary/               # Executive summaries
-│   └── share/                 # Cross-domain validators, shared checks, and models
+├── domains/                           # Business logic for each stage of the pipeline
+│   ├── discovery/
+│   │   ├── discovery_engine.py
+│   │   ├── prompts.py
+│   │   ├── validators.py
+│   │   └── __init__.py
+│   │
+│   ├── scoring/
+│   │   ├── scoring_engine.py
+│   │   ├── prompts.py
+│   │   ├── validators.py
+│   │   └── __init__.py
+│   │
+│   ├── mitigation/
+│   │   ├── mitigation_engine.py
+│   │   ├── prompts.py
+│   │   ├── validators.py
+│   │   └── __init__.py
+│   │
+│   ├── summary/
+│   │   ├── summary_engine.py
+│   │   ├── prompts.py
+│   │   ├── validators.py
+│   │   └── __init__.py
+│   │
+│   └── share/                         # Shared cross-domain logic
+│       ├── models.py                  # Shared domain-level helper models
+│       ├── validators.py              # Cross-domain validation rules
+│       └── __init__.py
 │
-├── exceptions/                # Canonical exception hierarchy
+├── exceptions/                        # Canonical exception hierarchy
+│   ├── errors.py
+│   ├── validation_errors.py
+│   └── __init__.py
 │
-├── llm/                       # LLM routing and client wrappers
+├── llm/                               # Model routing and inference
+│   ├── openai_client.py               # Wrapper around OpenAI client
+│   ├── model_router.py                # Deterministic model selection for inference
+│   ├── prompts/                       # Optional shared prompt templates
+│   │   ├── base_templates.py
+│   │   └── __init__.py
+│   └── __init__.py
 │
-├── models/                    # Pydantic V2 schema definitions
+├── models/                            # Pydantic v2 schemas for structured data
 │   ├── RiskItem.py
 │   ├── ScoreItem.py
 │   ├── ThemeItem.py
 │   ├── MitigationItem.py
 │   ├── Summary.py
 │   ├── PipelineRequest.py
-│   └── PipelineResponse.py
+│   ├── PipelineResponse.py
+│   └── __init__.py
 │
-├── observability/             # Metrics, tracing hooks
+├── observability/                     # Monitoring, metrics, and tracing
+│   ├── metrics.py
+│   ├── tracing.py
+│   └── __init__.py
 │
-├── pipelines/                 # Execution graph and orchestrator
+├── pipelines/                         # Execution graph and orchestrator
 │   ├── context_manager.py
 │   ├── execution_graph.py
 │   ├── orchestrator.py
 │   └── __init__.py
 │
-├── tests/                     # Unit tests
+├── tests/                             # Unit + integration tests
+│   ├── test_models.py
+│   ├── test_pipelines.py
+│   ├── test_orchestrator.py
+│   └── __init__.py
 │
-└── utils/                     # Optional helpers
+└── utils/                             # Optional general-purpose helpers
+    ├── text_utils.py
+    ├── json_utils.py
+    └── __init__.py
 ```
-
----
 
 ## 4. Processing Flow
 
-The PreMortem analysis executes in four controlled stages:
+The PreMortem pipeline executes in four deterministic stages.  
+Each stage is handled by its own domain engine, enforces strict schema validation,
+and writes structured results to the shared pipeline context.
 
 ### 4.1 Discovery:
 
-- Extracts atomic risks from project input.
-- Normalizes language and produces structured `RiskItem` objects.
-- Performs validation against discovery schemas.
+- Extracts atomic risks from the project description using domain prompts and structured inference.
+- Normalizes all text fields and assigns unique, stable risk IDs.
+- Produces a list of `RiskItem` objects.
+- Applies domain-level and shared validators to guarantee completeness and structural integrity.
 
 ### 4.2 Scoring:
 
-- Assigns probability and impact using a ruleset and LLM-assisted inference.
-- Produces `ScoreItem` instances linked to each risk by unique ID.
+- Evaluates each discovered risk and assigns probability and impact values.
+- Combines rule-based logic with LLM-assisted scoring under strict schema constraints.
+- Produces `ScoreItem` objects keyed by the originating risk ID.
+- Enforces bounded numeric ranges and probabilistic coherence across all scores.
 
 ### 4.3 Mitigation:
 
-- Generates mitigation steps using deterministic templates and structured LLM calls.
-- Produces `MitigationItem` objects.
+- Generates targeted mitigation strategies for each risk.
+- Uses deterministic templates and structured LLM calls to ensure consistency and reproducibility.
+- Produces `MitigationItem` objects, each referencing an existing risk ID.
+- Validates content quality, duplication, and alignment with the underlying risk.
 
 ### 4.4 Summary:
 
-- Produces an executive-style summary with narrative framing and risk groupings.
-- Utilizes shared domain validators to ensure alignment with scored risks and mitigations.
+- Synthesizes a leadership-ready executive summary of the overall risk landscape.
+- Groups risks into themes, highlights critical patterns, and frames recommended actions.
+- Produces a structured `Summary` object tied to all upstream artifacts.
+- Ensures semantic alignment with discovered risks, scored values, and mitigation outputs.
 
-Every output passes through the schema validation layer before continuing.
+All stage outputs must successfully parse into their Pydantic V2 schemas.  
+If any step fails validation, the orchestrator stops execution and returns a structured error.
 
 ---
 
 ## 5. Pipeline Orchestration
 
-The pipeline is coordinated through:
+The orchestration layer coordinates all domain engines into a deterministic,
+fully auditable execution sequence. It ensures that each stage operates on
+validated inputs, produces validated outputs, and writes results into the
+shared pipeline context.
 
-**execution_graph.py**
-Defines the ordered sequence of domain operations.
+### 5.1 execution_graph.py:
 
-**context_manager.py**
-Maintains shared state and intermediate results across stages.
+Defines the ordered workflow of the pipeline:
 
-**orchestrator.py**
-Runs the full graph, enforces error boundaries, logs execution durations, and emits a machine-readable `PipelineResponse`.
+    Discovery → Scoring → Mitigation → Summary
 
-This structure allows:
+The execution graph specifies:
 
-- Strict reproducibility
-- Swap-in domain modules
-- Parallelizable future extensions
-- Modular testing of each domain
+- The exact sequence of domain engines
+- Input/output dependencies for each stage
+- Enforcement of schema boundaries between stages
+- Strict progression rules (no stage may execute without validated upstream data)
+
+This module acts as the canonical blueprint for the entire system.
+
+### 5.2 context_manager.py:
+
+Maintains all intermediate state across the pipeline lifecycle.
+
+Responsibilities include:
+
+- Storing validated outputs from each domain
+- Exposing typed getters/setters for structured access
+- Ensuring immutability of finalized stage outputs
+- Providing a controlled interface for cross-domain data consumption
+- Supporting future parallel execution or caching strategies
+
+The context manager is the single source of truth for pipeline state.
+
+### 5.3 orchestrator.py:
+
+Executes the pipeline by walking the execution graph and coordinating each domain engine.
+
+Core responsibilities:
+
+- Initialize context and runtime configuration
+- Execute each stage in sequence with strict error boundaries
+- Enforce schema validation before and after each domain engine runs
+- Capture timings, logs, and metadata for observability
+- Halt immediately on validation failures and surface structured errors
+- Produce the final `PipelineResponse` with all validated artifacts
+
+The orchestrator ensures reproducibility, determinism, and traceability of every run.
+
+### 5.4 Guarantees Provided by the Orchestration Layer:
+
+- Deterministic order of execution
+- No cross-stage mutation after a stage is finalized
+- Full audit trail of inputs, outputs, timings, and model versions
+- Clear separation of concerns between domain logic and pipeline control flow
+- Predictable failure behavior with typed, structured error responses
+
+This orchestration design enables enterprise reliability while preserving modularity,
+making each domain engine independently testable and easily replaceable.
 
 ---
 
 ## 6. LLM Integration Layer
 
-The system does not call LLMs directly. All inference routes through:
+All LLM interaction is routed through a controlled inference layer that enforces
+deterministic behavior, strict schema validation, and version-governed model usage.
+No domain engine interacts with an LLM directly.
 
-- `LLMClient` (OpenAI API wrapper)
-- `model_router` (deterministic model selection)
-- Structured prompt templates per domain
-- Strict Pydantic V2 schema parsing and error recovery
+### 6.1 openai_client.py:
 
-This ensures:
+Provides the unified interface for all inference operations.
 
-- Version-controlled LLM behavior
-- Auditability
-- Deterministic field-level validation
-- Production readiness for enterprise use cases
+Responsibilities:
+
+- Perform all outbound LLM calls through a single governed client
+- Attach model version, temperature, and system prompts deterministically
+- Apply request-level timeouts, retries, and error normalization
+- Record raw input/output payloads for observability
+- Never return unvalidated model output to upstream components
+
+This guarantees that all inference behavior is consistent, auditable, and centrally controlled.
+
+### 6.2 model_router.py:
+
+Determines which model should be used for each operation.
+
+Responsibilities:
+
+- Map each domain engine to its designated model tier
+- Enforce stable model versions via configuration (e.g., `gpt-5.1`, `gpt-4o-mini`)
+- Support pluggable future providers without changing domain logic
+- Ensure deterministic selection based on pipeline settings and environment overrides
+
+Domain engines do not choose their models—routing is fully centralized.
+
+### 6.3 Structured Prompt Templates:
+
+Each domain uses tightly scoped prompt templates that define:
+
+- Required output schema
+- Canonical vocabulary and formatting rules
+- Deterministic phrasing to minimize inference variance
+- Clear examples of valid and invalid responses
+- Instructions forbidding creative formatting, unrequested narratives, or deviations
+
+Prompts are intentionally rigid to maintain reproducibility across runs.
+
+### 6.4 Structured Response Enforcement:
+
+Every LLM response must successfully parse into a Pydantic V2 schema
+before the pipeline is allowed to progress.
+
+Process:
+
+1. LLM returns raw text.
+2. The client attempts to parse the response into the domain’s schema (e.g., `RiskItem`, `ScoreItem`, `MitigationItem`, `Summary`).
+3. If parsing fails:
+   - The pipeline halts immediately.
+   - A structured `ValidationError` is raised.
+   - The orchestrator returns a typed error response containing:
+     - offending payload
+     - model version
+     - domain step
+     - parsing details
+
+No partially valid or malformed outputs are ever accepted.
+
+### 6.5 Enforcement Guarantees:
+
+The integration layer ensures:
+
+- All inference outputs are strongly typed
+- No downstream stage receives unstructured or ambiguous data
+- Full reproducibility of model behavior based on controlled prompts and parameters
+- Clear audit trails for debugging and compliance
+- Zero tolerance for schema drift or format deviations
+
+This transforms LLM inference from an unbounded text-generation process
+into a **strictly governed, contract-enforced data transformation step**.
+
+### 6.6 Provider-Agnostic Architecture:
+
+By isolating inference behind this layer, the system can adopt additional
+providers (e.g., Anthropic, Azure OpenAI, local models) by implementing:
+
+- A new client wrapper
+- A routing strategy
+- Schema validation bindings
+
+No domain engine or pipeline component requires modification.
 
 ---
 
@@ -245,6 +416,8 @@ The API, CLI, pipeline orchestrator, domain logic, and LLM client are fully deco
 **6. Extensibility**
 New engines, scoring models, or LLM backends can be added with minimal code changes.
 
+The pipeline is fully auditable: every stage logs inputs, outputs, timings, model versions, and validation boundaries to support enterprise governance.
+
 ---
 
 ## 11. Extending the System
@@ -276,7 +449,7 @@ Tests are located under `tests/` and should cover:
 
 ---
 
-## 13. Liscense
+## 13. License
 
 This project is licensed under the [MIT License](./LICENSE). See the LICENSE file for details.
 
