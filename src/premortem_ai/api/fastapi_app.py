@@ -1,49 +1,44 @@
 """
 fastapi_app.py
 
-Primary FastAPI application for exposing the PreMortem AI analysis pipeline
-as an HTTP service. This module defines:
+FastAPI application exposing the PreMortem AI pipeline.
+Uses the new functional pipeline entrypoint:
+    run_pipeline(PipelineRequest)
 
-    - POST /analyze     : Runs a full PreMortem AI analysis
-    - Health checks     : Lightweight readiness/liveness endpoints
-
-The API intentionally surfaces only the stable input/output contracts defined
-in:
-    - PipelineRequest
-    - PipelineResponse
-
-All business logic is delegated to AnalysisService and the underlying
-PipelineOrchestrator.
+This layer is intentionally thin — all logic lives in domains + pipeline.
 """
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from premortem_ai.analysis_service import AnalysisService
 from premortem_ai.models import PipelineRequest, PipelineResponse
+from premortem_ai.pipelines import run_pipeline
+from premortem_ai.exceptions import (
+    ValidationError,
+    CrossReferenceError,
+    ModelInvocationError,
+    ConfigurationError,
+)
+from premortem_ai.core.logger import error, info
 
 
 # ---------------------------------------------------------------------------
-# FastAPI Application Setup
+# FastAPI Setup
 # ---------------------------------------------------------------------------
 
 app = FastAPI(
-    title="PreMortem AI – Analysis API",
-    version="1.0.0",
-    description="Run automated project risk analysis using PreMortem AI.",
+    title="PreMortem AI – Pipeline API",
+    version="2.0.0",
+    description="Automated project risk analysis powered by the PreMortem AI pipeline.",
 )
 
-# Optional: allow cross-origin access (useful for dashboards or JS clients)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],    # tighten in production
+    allow_origins=["*"],  # tighten for production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Initialize the service layer
-service = AnalysisService()
 
 
 # ---------------------------------------------------------------------------
@@ -51,37 +46,58 @@ service = AnalysisService()
 # ---------------------------------------------------------------------------
 
 @app.get("/health", tags=["system"])
-def health_check():
+def health():
     return {"status": "ok"}
 
 
 @app.get("/ready", tags=["system"])
-def readiness_check():
+def ready():
     return {"ready": True}
 
 
 # ---------------------------------------------------------------------------
-# Main Analysis Endpoint
+# Pipeline Execution Endpoint
 # ---------------------------------------------------------------------------
 
 @app.post(
-    "/analyze",
+    "/pipeline/run",
     response_model=PipelineResponse,
     tags=["analysis"],
-    summary="Run a full PreMortem AI analysis",
+    summary="Run the full PreMortem AI pipeline",
 )
-def analyze(request: PipelineRequest):
+def pipeline_run(request: PipelineRequest):
     """
-    Execute a complete PreMortem AI pipeline run.
-
-    Validates the request using canonical models, invokes AnalysisService,
-    and returns a fully validated PipelineResponse.
+    Execute the complete risk analysis pipeline.
     """
     try:
-        response = service.run_analysis(request.model_dump())
+        info("API: Received pipeline request.")
+        response = run_pipeline(request)
         return response
+
+    # ---------------- Core validation issues -----------------
+    except ValidationError as exc:
+        error(f"Validation error: {exc}")
+        raise HTTPException(status_code=422, detail=str(exc))
+
+    # ---------------- Cross-reference / schema mismatch -------
+    except CrossReferenceError as exc:
+        error(f"Cross-reference error: {exc}")
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    # ---------------- Model or LLM failure --------------------
+    except ModelInvocationError as exc:
+        error(f"Model invocation error: {exc}")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    # ---------------- Configuration issues --------------------
+    except ConfigurationError as exc:
+        error(f"Configuration error: {exc}")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    # ---------------- Unexpected fallback ---------------------
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        error(f"Unhandled API error: {exc}")
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {exc}")
 
 
 # ---------------------------------------------------------------------------
@@ -91,10 +107,10 @@ def analyze(request: PipelineRequest):
 @app.get("/", tags=["system"])
 def root():
     return {
-        "message": "PreMortem AI Analysis API",
+        "message": "PreMortem AI Pipeline API",
         "endpoints": {
-            "POST /analyze": "Submit project description for full risk analysis",
-            "GET /health": "Basic system health",
+            "POST /pipeline/run": "Execute a full PreMortem AI analysis",
+            "GET /health": "Basic health check",
             "GET /ready": "Readiness probe",
         },
     }
