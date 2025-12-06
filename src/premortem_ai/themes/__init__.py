@@ -1,23 +1,17 @@
 """
-Themes domain for the PreMortem AI pipeline.
+Public API for theme clustering.
 
-This domain clusters individual risks into higher-level thematic groups
-based on shared patterns, underlying drivers, and systemic issues.
+This module exposes the high-level theme generation utilities used by
+pipeline orchestration, services, and downstream reporting layers.
 
-The Themes stage is critical for:
-    - Revealing macro-level problem areas
-    - Improving interpretability for stakeholders
-    - Providing structured input to mitigation generation
-    - Enhancing summary and reporting layers
-
-Design Principles:
-    - Theme extraction is a hybrid process (LLM + deterministic grouping)
-    - Outputs MUST conform to the themes schema
-    - Each theme receives its own generated theme_id downstream
+Internal clustering logic and prompt construction remain encapsulated
+to provide a stable, versioned contract.
 """
 
-from .theme_clusterer import run_theme_clustering
+from .prompts import build_theme_prompt
+from .theme_clusterer import parse_theme_output
 
 __all__ = [
-    "run_theme_clustering",
+    "build_theme_prompt",
+    "parse_theme_output",
 ]
