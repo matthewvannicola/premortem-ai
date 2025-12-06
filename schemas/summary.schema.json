@@ -1,0 +1,41 @@
+{
+  "$id": "https://premortem.ai/schemas/summary.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Summary",
+  "description": "Executive-level summary synthesizing project health, top risks, and narrative context.",
+  "type": "object",
+  "additionalProperties": false,
+
+  "required": [
+    "health_score",
+    "top_risks",
+    "narrative"
+  ],
+
+  "properties": {
+    "health_score": {
+      "type": "integer",
+      "description": "Overall project health score (0–100), computed deterministically from scoring and thematic patterns.",
+      "minimum": 0,
+      "maximum": 100
+    },
+
+    "top_risks": {
+      "type": "array",
+      "description": "Ordered list of the highest-severity risks.",
+      "items": {
+        "type": "string",
+        "pattern": "^risk-[0-9]{5}$"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+
+    "narrative": {
+      "type": "string",
+      "description": "Concise executive narrative explaining the project's risk posture.",
+      "minLength": 10,
+      "maxLength": 5000
+    }
+  }
+}
