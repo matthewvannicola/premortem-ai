@@ -1,104 +1,93 @@
 """
-analysis_service/service.py
+service.py
 
-High-level service responsible for executing the full PreMortem AI pipeline.
-This module provides the public-facing interface used by:
+The AnalysisService coordinates:
+    - request validation (Pydantic)
+    - model routing
+    - pipeline orchestration
+    - response transformation
 
-    - REST API handlers
-    - CLI tools
-    - SDK consumers
-    - Pipedream / Make.com integrations
-    - Internal automation workflows
-
-The AnalysisService orchestrates:
-    1. Input validation (PipelineRequest)
-    2. Orchestrator execution
-    3. Result packaging (PipelineResponse)
-    4. Error wrapping with domain-friendly exceptions
+It is the only place in the system that directly invokes the pipeline engine.
 """
 
-from premortem_ai.models import PipelineRequest, PipelineResponse
-from premortem_ai.pipelines.orchestrator import PipelineOrchestrator
+from typing import Any, Dict
+
+from premortem_ai.pipelines import run_pipeline
+from premortem_ai.models.pipeline_request import PipelineRequest
+from premortem_ai.models.pipeline_response import PipelineResponse
+from premortem_ai.llm.model_router import resolve_model_version
+from premortem_ai.exceptions import ValidationError, PipelineExecutionError
+from premortem_ai.observability.metrics import record_pipeline_execution
+from premortem_ai.core.logger import logger
 
 
 class AnalysisService:
     """
-    Thin service wrapper around the pipeline orchestrator.
+    High-level facade for executing the PreMortem AI system.
 
-    Provides a stable boundary where:
-        - API / CLI / SDKs interact with the system
-        - Versioning and overrides are centrally enforced
-        - Errors can be abstracted and normalized
+    API and CLI layers should call ONLY this class — never the pipeline
+    orchestrator directly. This preserves abstraction boundaries.
     """
 
-    def __init__(self, default_model_version: str = "gpt-5.1", default_pipeline_version: str = "v1.0.0"):
-        self.default_model_version = default_model_version
-        self.default_pipeline_version = default_pipeline_version
-        self._orchestrator = PipelineOrchestrator()
+    def __init__(self):
+        pass
 
     # ----------------------------------------------------------------------
-    # Main public service entry point
+    # Public Main Entry Point
     # ----------------------------------------------------------------------
-    def run_analysis(self, raw_request: dict) -> PipelineResponse:
+
+    def execute(self, request_data: Dict[str, Any]) -> PipelineResponse:
         """
-        Execute a full PreMortem AI pipeline run.
+        Accept raw inbound request data (from FastAPI, CLI, workflow runners),
+        validate it, execute the pipeline, and return a structured response.
 
         Args:
-            raw_request (dict):
-                Raw user or API payload. Will be normalized and validated
-                using PipelineRequest.from_api().
+            request_data: dict containing request fields
 
         Returns:
-            PipelineResponse:
-                Fully validated pipeline output containing a RiskReport.
-
-        Raises:
-            ValueError: For malformed inputs.
-            RuntimeError: For unexpected pipeline failures.
+            PipelineResponse
         """
 
-        # -------------------------------------------------------------
-        # 1. Normalize + validate request
-        # -------------------------------------------------------------
-        request = PipelineRequest.from_api(raw_request)
-
-        model_version = (
-            request.model_version_override
-            if request.model_version_override
-            else self.default_model_version
-        )
-
-        pipeline_version = (
-            request.pipeline_version_override
-            if request.pipeline_version_override
-            else self.default_pipeline_version
-        )
-
-        # -------------------------------------------------------------
-        # 2. Execute orchestrator
-        # -------------------------------------------------------------
+        # ---------------------------------------------------------
+        # 1. Validate request
+        # ---------------------------------------------------------
         try:
-            report = self._orchestrator.execute(
-                project_description=request.project_description,
-                max_risks=request.max_risks,
-                model_version=model_version,
-                pipeline_version=pipeline_version,
-                include_metadata=request.include_metadata,
+            request = PipelineRequest(**request_data)
+        except Exception as exc:
+            logger.error(f"Request validation failed: {exc}")
+            raise ValidationError(str(exc))
+
+        # ---------------------------------------------------------
+        # 2. Model routing
+        # ---------------------------------------------------------
+        try:
+            request.model_version = resolve_model_version(
+                request.model_version_override
             )
         except Exception as exc:
-            raise RuntimeError(f"Pipeline execution failed: {exc}") from exc
+            logger.error(f"Model version resolution failed: {exc}")
+            raise ValidationError(str(exc))
 
-        # -------------------------------------------------------------
-        # 3. Wrap & return stable response shape
-        # -------------------------------------------------------------
-        return PipelineResponse.from_report(report)
+        # ---------------------------------------------------------
+        # 3. Execute pipeline
+        # ---------------------------------------------------------
+        try:
+            context = run_pipeline(request)
+        except Exception as exc:
+            logger.exception(f"Pipeline execution failed: {exc}")
+            raise PipelineExecutionError(str(exc))
 
-    # ----------------------------------------------------------------------
-    # Convenience helper for CLI / debugging
-    # ----------------------------------------------------------------------
-    def run(self, project_description: str) -> PipelineResponse:
-        """
-        Convenience wrapper allowing a simple string → full analysis run.
-        Ideal for CLI usage or lightweight integrations.
-        """
-        return self.run_analysis({"project_description": project_description})
+        # ---------------------------------------------------------
+        # 4. Record metrics
+        # ---------------------------------------------------------
+        try:
+            record_pipeline_execution(context)
+        except Exception as exc:
+            logger.warning(f"Pipeline metrics failed: {exc}")
+
+        # ---------------------------------------------------------
+        # 5. Transform to response object
+        # ---------------------------------------------------------
+        response = PipelineResponse.from_context(context)
+
+        return response
