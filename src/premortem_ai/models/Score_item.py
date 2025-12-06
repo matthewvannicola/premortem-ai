@@ -1,16 +1,24 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import Field, field_validator
 from premortem_ai.core.normalize_text import normalize_text
 
+from .base_model import CanonicalModel
 
-class ScoreItem(BaseModel):
+
+class ScoreItem(CanonicalModel):
     """
     Canonical probability/impact/severity scoring structure.
-    
+
     Mirrors scoring_item.schema.json and is used by:
       - scoring.severity_engine
       - scoring.aggregator
       - theme clustering (for weighted grouping)
       - final RiskReport assembly
+
+    Inherits:
+      - strict schema enforcement
+      - deterministic serialization
+      - immutable model behavior
+      - version tagging
     """
 
     risk_id: str = Field(
@@ -79,7 +87,7 @@ class ScoreItem(BaseModel):
     @classmethod
     def from_llm(cls, raw: dict):
         """
-        Construct ScoreItem directly from an LLM output dict.
+        Construct a ScoreItem directly from an LLM output dictionary.
         Ensures:
           - normalization
           - severity consistency validation
