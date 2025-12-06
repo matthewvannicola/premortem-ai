@@ -1,70 +1,92 @@
 """
 models.py
 
-Pydantic models for structured summary output in the PreMortem AI system.
+Pydantic data models for summary-level reporting outputs.
 
-The SummaryItem represents the consolidated executive narrative
-produced after risk discovery, scoring, theming, and mitigation generation.
+The SummaryItem model is the canonical representation of the final
+executive-layer output produced by the summary_generator. This is the
+primary data structure used for:
+    - PDF/HTML report generation
+    - API responses
+    - Dashboard visualizations
+    - PipelineResponse assembly
+
+The model enforces strict typing, normalization, and ordered risk
+references to ensure deterministic downstream processing.
 """
 
 from typing import List
-from pydantic import BaseModel, Field
-from premortem_ai.core.id_generation import generate_summary_id
-from premortem_ai.core.normalize_text import normalize_text
+from uuid import uuid4
+from pydantic import BaseModel, field_validator
 
 
 class SummaryItem(BaseModel):
     """
-    Canonical executive summary block returned by the pipeline.
-
-    This object is included in PipelineResponse and downstream
-    reporting layers (PDF, dashboard, exports).
+    SummaryItem represents the final structured summary produced by the
+    LLM after ingesting risks, themes, and mitigations. It captures the
+    narrative and the ranked "top risks" list.
     """
 
-    summary_id: str = Field(
-        default_factory=generate_summary_id,
-        description="Stable unique identifier for this summary block.",
-    )
+    summary_id: str = None
+    executive_summary: str
+    top_risks_summary: str
+    themes_summary: str
+    mitigation_overview: str
+    top_risk_ids: List[str]
 
-    executive_summary: str = Field(
-        ...,
-        description="High-level narrative overview of project risk posture."
-    )
+    # ------------------------------------------------------------
+    # Validators & Normalizers
+    # ------------------------------------------------------------
 
-    top_risks_summary: str = Field(
-        ...,
-        description="Synthesis of the most severe and urgent risks."
-    )
+    @field_validator("summary_id", mode="before")
+    def assign_uuid(cls, v):
+        """Assign UUID if not explicitly provided."""
+        return v or f"summary-{uuid4().hex}"
 
-    themes_summary: str = Field(
-        ...,
-        description="Narrative explanation of systemic patterns derived from themes."
+    @field_validator(
+        "executive_summary",
+        "top_risks_summary",
+        "themes_summary",
+        "mitigation_overview",
+        mode="before",
     )
+    def clean_text_fields(cls, v):
+        """Ensure narratives are normalized as strings."""
+        if v is None:
+            return ""
+        return str(v).strip()
 
-    mitigation_overview: str = Field(
-        ...,
-        description="High-level overview synthesizing mitigation strategy."
-    )
+    @field_validator("top_risk_ids")
+    def ensure_non_empty_list(cls, v):
+        """Ensure at least one top risk ID is present."""
+        if not v or not isinstance(v, list):
+            raise ValueError("top_risk_ids must contain at least one risk ID.")
+        return [str(x).strip() for x in v if str(x).strip()]
 
-    top_risk_ids: List[str] = Field(
-        ...,
-        description="Ordered list of risk IDs representing the most severe risks."
-    )
+    # ------------------------------------------------------------
+    # Utility Methods
+    # ------------------------------------------------------------
 
-    # ------------------------------------------------------------------
-    # NORMALIZATION HOOKS
-    # ------------------------------------------------------------------
     def normalize(self) -> "SummaryItem":
         """
-        Apply global normalization rules to all narrative fields.
-        Ensures consistent casing, whitespace, unicode normalization,
-        and downstream serializable output.
+        Optional hook to perform higher-level normalization on fields.
+        This is extended by the summary_generator after LLM output.
         """
+        cleaned_exec = self.executive_summary.strip()
+        cleaned_top = self.top_risks_summary.strip()
+        cleaned_themes = self.themes_summary.strip()
+        cleaned_mit = self.mitigation_overview.strip()
+
         return SummaryItem(
             summary_id=self.summary_id,
-            executive_summary=normalize_text(self.executive_summary),
-            top_risks_summary=normalize_text(self.top_risks_summary),
-            themes_summary=normalize_text(self.themes_summary),
-            mitigation_overview=normalize_text(self.mitigation_overview),
-            top_risk_ids=[r.strip() for r in self.top_risk_ids],
+            executive_summary=cleaned_exec,
+            top_risks_summary=cleaned_top,
+            themes_summary=cleaned_themes,
+            mitigation_overview=cleaned_mit,
+            top_risk_ids=self.top_risk_ids,
         )
+
+    class Config:
+        validate_assignment = True
+        extra = "forbid"
+        frozen = False
