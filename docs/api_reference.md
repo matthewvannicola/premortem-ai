@@ -115,7 +115,7 @@ All endpoints use **JSON request/response bodies**, enforce strict schema valida
 
 ---
 
-## 4. POST /anslysis
+## 4. POST /analysis
 
 Executes the entire PreMortem AI pipeline and returns a complete `RiskReport`
 
