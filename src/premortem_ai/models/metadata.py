@@ -1,9 +1,11 @@
-from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from datetime import datetime
+from pydantic import Field, field_validator
+
+from .base_model import CanonicalModel
 
 
-class Metadata(BaseModel):
+class Metadata(CanonicalModel):
     """
     Execution-level metadata describing pipeline runtime context.
     
@@ -12,6 +14,12 @@ class Metadata(BaseModel):
       - summary + report generation
       - audit logs / reproducibility features
       - model/version analytics
+
+    Inherits:
+      - strict schema enforcement
+      - immutable/frozen data model behavior
+      - deterministic serialization
+      - version tagging for compatibility
     """
 
     timestamp_utc: str = Field(
@@ -55,7 +63,6 @@ class Metadata(BaseModel):
     def _validate_timestamp_format(cls, v):
         if isinstance(v, str):
             try:
-                # Must match YYYY-MM-DDTHH:MM:SSZ exactly
                 datetime.strptime(v, "%Y-%m-%dT%H:%M:%SZ")
             except ValueError:
                 raise ValueError(
@@ -76,11 +83,16 @@ class Metadata(BaseModel):
         return v
 
     # ---------------------------------------------------------
-    # Provide convenience constructors
+    # Convenience constructor
     # ---------------------------------------------------------
     @classmethod
-    def new(cls, pipeline_version: str, model_version: str, execution_time_ms: int,
-            determinism_fingerprint: Optional[str] = None):
+    def new(
+        cls,
+        pipeline_version: str,
+        model_version: str,
+        execution_time_ms: int,
+        determinism_fingerprint: Optional[str] = None,
+    ):
         """
         Smart constructor used by orchestrator.
 
