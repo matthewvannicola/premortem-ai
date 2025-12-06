@@ -1,21 +1,17 @@
 """
-Scoring domain for the PreMortem AI pipeline.
+Public scoring API for PreMortem AI.
 
-This domain is responsible for evaluating risk severity using a hybrid
-approach that combines deterministic scoring rules with LLM-assisted
-judgment signals. The scoring stage enriches each risk with structured
-metrics that downstream components (themes, mitigation, summary, reporting)
-depend on.
+This module exposes the high-level scoring functions used across
+pipelines, services, and orchestration layers.
 
-Core responsibilities:
-    - Apply deterministic severity rules
-    - Invoke LLM scoring where needed for depth/nuance
-    - Aggregate results into a final severity profile per risk
-    - Produce schema-aligned structured scoring output
+Internal rule engines and prompt templates remain private to maintain
+a stable, governed API surface.
 """
 
-from .severity_engine import run_scoring
+from .severity_engine import compute_scores_for_risks
+from .prompts import build_scoring_prompt
 
 __all__ = [
-    "run_scoring",
+    "compute_scores_for_risks",
+    "build_scoring_prompt",
 ]
