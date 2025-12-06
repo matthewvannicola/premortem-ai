@@ -140,6 +140,44 @@ Normalize inputs and wrap outputs safely.
 
 ---
 
+---
+
+## Canonical Model Architecture Diagram
+
+Below is a high-level overview of how canonical models flow through the
+PreMortem AI pipeline:
+
+```
+PipelineRequest ──▶ Discovery Engine ──────▶ RiskItem[]
+                      │
+                      ▼
+                 Scoring Engine ───────────▶ ScoreItem[]
+                      │
+                      ▼
+                 Theme Clusterer ─────────▶ ThemeItem[]
+                      │
+                      ▼
+             Mitigation Generator ─────────▶ MitigationItem[]
+                      │
+                      ▼
+                    Summarizer ───────────▶ Summary
+                      │
+                      ▼
+                Metadata Collector ───────▶ Metadata
+                      │
+                      ▼
+               RiskReport Assembler ──────▶ RiskReport
+                      │
+                      ▼
+               API / SDK Wrapper ─────────▶ PipelineResponse
+```
+
+
+This diagram reflects the **canonical, validated, and deterministic flow**
+guaranteed by the model layer.
+
+---
+
 ## Example Usage
 
 ### Creating a RiskItem:
@@ -194,6 +232,103 @@ from premortem_ai.models import *
 are considered part of the public, governed, versionable interface of the PreMortem AI system.
 
 Breaking changes require a semver bump and migration notes.
+
+---
+
+---
+
+## Forward & Backward Compatibility Guarantees
+
+The canonical model layer is designed with long-term stability in mind.
+
+### **Backward Compatibility**
+Older serialized reports remain readable because:
+
+- all new fields must be optional or additive  
+- `CanonicalModel` forbids breaking-field removals  
+- deterministic parsing ensures no implicit data shifts  
+
+### **Forward Compatibility**
+Future versions of the pipeline can safely read older model versions due to:
+
+- strict JSON Schema alignment  
+- version-tagged canonical models  
+- clearly governed public API boundaries  
+
+These guarantees make canonical models suitable for:
+
+- historical risk trend analysis  
+- audit logs  
+- regulatory/compliance reporting  
+- reproducible research workflows  
+
+---
+
+## Model Validation & Invariant Tests
+
+The integrity and stability of the canonical model layer is verified through
+a suite of automated tests located in:
+
+```
+test/models/
+```
+
+
+These tests enforce:
+
+- schema alignment  
+- deterministic serialization  
+- cross-reference integrity (e.g., ScoreItem → RiskItem)  
+- normalization consistency  
+- immutability behavior  
+- regression protection for public API changes  
+
+Before modifying or introducing new models, developers should run:
+
+```bash
+pytest tests/models -q
+```
+
+
+---
+
+# **Why Canonical Models Instead of Freeform Dicts?**
+
+## Why Canonical Models Instead of Free-Form Dictionaries?
+
+PreMortem AI enforces strict canonical models rather than unstructured
+Python dictionaries. This provides several critical advantages:
+
+### **1. Deterministic Behavior**
+All models normalize text, validate constraints, and serialize identically
+across environments → essential for reproducibility.
+
+### **2. Safety & Governance**
+Invalid fields, unexpected shapes, or corrupted references are rejected
+early via strict validation (`extra="forbid"`).
+
+### **3. Stability for Integrators**
+External consumers rely on stable, versioned contracts — identical to how
+platforms like OpenAI, AWS, and Stripe structure their API models.
+
+### **4. Cross-Module Guarantees**
+Strong typing prevents:
+
+- broken risk references  
+- missing or malformed summaries  
+- invalid scoring formulas  
+- misaligned mitigations  
+
+### **5. Future-Proofing**
+Canonical models allow:
+
+- schema-driven code generation  
+- UI form generation  
+- validation in any language  
+- long-term auditability  
+
+This approach turns the model layer into a *governed infrastructure tier*,
+not just a serialization convenience.
 
 ---
 
