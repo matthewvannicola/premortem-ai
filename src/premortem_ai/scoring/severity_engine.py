@@ -1,111 +1,132 @@
 """
-Severity scoring engine for the PreMortem AI pipeline.
+severity_engine.py
 
-This domain stage enriches each discovered risk with a structured severity
-profile using a hybrid method:
-    1. Deterministic rule-based scoring (repeatable, testable)
-    2. LLM-assisted scoring for contextual nuance
-    3. Aggregation of rule-based and LLM scores into a final severity value
+Core scoring engine for PreMortem AI.
 
-Scoring output structure (per risk):
-{
-    "risk_id": "...",
-    "likelihood": <0–10>,
-    "impact": <0–10>,
-    "severity": <0–10>,
-    "rationale": "short explanation"
-}
-
-This structured output feeds directly into the Themes and Mitigation stages.
+Responsible for:
+    • Applying severity rules (likelihood × impact)
+    • Validating LLM scoring outputs
+    • Providing deterministic fallback scoring
+    • Constructing ScoreItem objects
+    • Ensuring compatibility with RiskItem and domain models
 """
 
-from typing import List, Dict, Any
+from typing import Optional, Dict, Any
 
-from premortem_ai.integrations.openai_client import llm_json
-from premortem_ai.domains.scoring.severity_rules import rule_based_score
-from premortem_ai.domains.scoring.aggregator import aggregate_scores
-from premortem_ai.domains.scoring.prompts import SCORING_PROMPT
+from premortem_ai.models import ScoreItem
+from premortem_ai.exceptions import ValidationError, ModelInvocationError
+from premortem_ai.core.logger import info, warning, error
 
-
-# ---------------------------------------------------------------------
-# Internal Helpers
-# ---------------------------------------------------------------------
-
-def _prepare_scoring_prompt(risk: Dict[str, Any]) -> str:
-    """Format the scoring prompt for a specific risk."""
-    return SCORING_PROMPT.format(
-        title=risk.get("title", ""),
-        description=risk.get("description", "")
-    )
+from .severity_rules import (
+    compute_severity_score,
+    resolve_likelihood,
+    resolve_impact,
+    fallback_score,
+)
 
 
-def _llm_score(risk: Dict[str, Any], model: str) -> Dict[str, Any]:
+# ----------------------------------------------------------------------
+# LLM SCORING PARSE LOGIC
+# ----------------------------------------------------------------------
+
+def parse_llm_scoring_output(risk_id: str, llm_output: Dict[str, Any]) -> ScoreItem:
     """
-    Call the LLM to generate contextual scoring signals.
-    Expected output shape:
-    {
-        "likelihood": number,
-        "impact": number,
-        "rationale": "..."
-    }
-    """
-    prompt = _prepare_scoring_prompt(risk)
+    Parse an LLM scoring response and convert it into a ScoreItem.
 
-    llm_result = llm_json(
-        prompt=prompt,
-        model=model,
-        response_format="object"
-    )
-
-    if not isinstance(llm_result, dict):
-        raise ValueError("LLM scoring response must be a JSON object.")
-
-    return {
-        "likelihood": llm_result.get("likelihood", 0),
-        "impact": llm_result.get("impact", 0),
-        "rationale": llm_result.get("rationale", "").strip(),
-    }
-
-
-# ---------------------------------------------------------------------
-# Public Entrypoint
-# ---------------------------------------------------------------------
-
-def run_scoring(risks: List[Dict[str, Any]], model: str) -> List[Dict[str, Any]]:
-    """
-    Execute the risk scoring stage.
-
-    Args:
-        risks (list[dict]): Normalized risks from the discovery stage.
-        model (str): Selected LLM model identifier.
-
-    Returns:
-        list[dict]: A list of scoring objects aligned with the scoring schema.
+    Expected LLM output schema (validated upstream):
+        {
+            "risk_id": "risk-00001",
+            "likelihood": "high",
+            "impact": "critical"
+        }
     """
 
-    scored = []
+    try:
+        raw_likelihood = llm_output.get("likelihood")
+        raw_impact = llm_output.get("impact")
 
-    for risk in risks:
-        # 1. Deterministic rule-based scoring
-        rule_scores = rule_based_score(risk)
+        if raw_likelihood is None or raw_impact is None:
+            raise ValidationError(
+                f"LLM scoring output for risk {risk_id} is missing likelihood or impact."
+            )
 
-        # 2. LLM contextual scoring
-        llm_scores = _llm_score(risk, model=model)
+        likelihood = resolve_likelihood(raw_likelihood)
+        impact = resolve_impact(raw_impact)
 
-        # 3. Aggregate both into a final severity profile
-        final_scores = aggregate_scores(rule_scores, llm_scores)
+        severity = compute_severity_score(likelihood, impact)
 
-        scored.append(
-            {
-                "risk_id": risk.get("risk_id"),
-                "likelihood": final_scores["likelihood"],
-                "impact": final_scores["impact"],
-                "severity": final_scores["severity"],
-                "rationale": final_scores["rationale"],
-            }
+        return ScoreItem(
+            risk_id=risk_id,
+            likelihood=likelihood,
+            impact=impact,
+            severity=severity,
         )
 
-    return scored
+    except ValidationError as e:
+        # LLM output invalid → fall back to deterministic scoring
+        warning(
+            f"Invalid LLM scoring output for risk {risk_id}: {e}. "
+            "Falling back to system default scoring."
+        )
+        return fallback_score_item(risk_id)
+
+    except Exception as e:
+        # Unknown error → escalate
+        error(f"Unexpected scoring error for risk {risk_id}: {e}")
+        raise ModelInvocationError(
+            f"Unexpected scoring failure for risk {risk_id}: {e}"
+        )
 
 
-__all__ = ["run_scoring"]
+# ----------------------------------------------------------------------
+# FALLBACK SCORING
+# ----------------------------------------------------------------------
+
+def fallback_score_item(risk_id: str) -> ScoreItem:
+    """
+    Deterministic fallback scoring for when LLM scoring is unavailable
+    or invalid.
+    """
+
+    severity = fallback_score()
+    return ScoreItem(
+        risk_id=risk_id,
+        likelihood=3,
+        impact=3,
+        severity=severity,
+    )
+
+
+# ----------------------------------------------------------------------
+# BULK SCORING FOR PIPELINES
+# ----------------------------------------------------------------------
+
+def compute_scores_for_risks(
+    risks: Dict[str, Any], llm_scores: Optional[Dict[str, Any]] = None
+) -> Dict[str, ScoreItem]:
+    """
+    Compute scores for a batch of risks.
+
+    Args:
+        risks: Dict of risk_id -> RiskItem
+        llm_scores: Dict of risk_id -> LLM scoring JSON
+
+    Returns:
+        Dict[str, ScoreItem]: All scored risks
+    """
+
+    results: Dict[str, ScoreItem] = {}
+
+    for risk_id, risk_item in risks.items():
+        llm_score_data = llm_scores.get(risk_id) if llm_scores else None
+
+        if llm_score_data:
+            score_item = parse_llm_scoring_output(risk_id, llm_score_data)
+        else:
+            warning(f"No LLM scoring provided for {risk_id}. Using fallback scoring.")
+            score_item = fallback_score_item(risk_id)
+
+        results[risk_id] = score_item
+
+    info(f"Computed severity scores for {len(results)} risks.")
+    return results
