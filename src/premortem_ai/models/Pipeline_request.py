@@ -1,9 +1,11 @@
-from pydantic import BaseModel, Field, field_validator
 from typing import Optional
+from pydantic import Field, field_validator
+
 from premortem_ai.core.normalize_text import normalize_text
+from .base_model import CanonicalModel
 
 
-class PipelineRequest(BaseModel):
+class PipelineRequest(CanonicalModel):
     """
     Top-level request object for initiating a PreMortem AI analysis.
 
@@ -12,6 +14,12 @@ class PipelineRequest(BaseModel):
       - orchestrator
       - preprocessing pipeline
       - API layer (REST or CLI)
+
+    Inherits:
+      - strict schema validation
+      - deterministic serialization
+      - immutable model behavior
+      - version tagging
     """
 
     project_description: str = Field(
