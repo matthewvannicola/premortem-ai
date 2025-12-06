@@ -289,10 +289,7 @@ Before modifying or introducing new models, developers should run:
 pytest tests/models -q
 ```
 
-
 ---
-
-# **Why Canonical Models Instead of Freeform Dicts?**
 
 ## Why Canonical Models Instead of Free-Form Dictionaries?
 
