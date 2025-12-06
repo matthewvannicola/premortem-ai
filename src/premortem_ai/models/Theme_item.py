@@ -1,10 +1,12 @@
-from pydantic import BaseModel, Field, field_validator
 from typing import List
+from pydantic import Field, field_validator
+
 from premortem_ai.core.normalize_text import normalize_text
 from premortem_ai.core.id_generation import generate_theme_id
+from .base_model import CanonicalModel
 
 
-class ThemeItem(BaseModel):
+class ThemeItem(CanonicalModel):
     """
     Canonical representation of a thematic grouping of related risks.
 
@@ -13,11 +15,17 @@ class ThemeItem(BaseModel):
       - severity aggregation
       - final summary generation
       - mitigation alignment
+
+    Inherits:
+      - strict schema enforcement
+      - deterministic serialization
+      - immutable model behavior
+      - model version tagging
     """
 
     theme_id: str = Field(
         ...,
-        description="Stable unique theme identifier (e.g. 'theme-00012').",
+        description="Stable unique theme identifier (e.g., 'theme-00012').",
         min_length=6,
         max_length=50,
     )
@@ -69,7 +77,7 @@ class ThemeItem(BaseModel):
         return v
 
     # ---------------------------------------------------------
-    # Provide convenient builders
+    # Convenience constructors
     # ---------------------------------------------------------
     @classmethod
     def from_llm(cls, raw: dict):
@@ -84,5 +92,5 @@ class ThemeItem(BaseModel):
         return cls(**raw)
 
     def to_dict(self):
-        """Return a clean JSON-serializable dictionary."""
+        """Return a clean JSON-serializable dict."""
         return self.model_dump()
