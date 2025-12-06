@@ -1,8 +1,10 @@
-from pydantic import BaseModel, Field
+from pydantic import Field
+
 from premortem_ai.models.risk_report import RiskReport
+from .base_model import CanonicalModel
 
 
-class PipelineResponse(BaseModel):
+class PipelineResponse(CanonicalModel):
     """
     Canonical response envelope for the /analysis pipeline endpoint.
 
@@ -14,6 +16,12 @@ class PipelineResponse(BaseModel):
       - SDK consumers
 
     Provides a stable, versionable contract around the RiskReport payload.
+
+    Inherits:
+      - strict schema validation
+      - deterministic serialization
+      - immutable model behavior
+      - version tagging
     """
 
     report: RiskReport = Field(
