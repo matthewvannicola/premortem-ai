@@ -1,14 +1,16 @@
-from pydantic import BaseModel, Field, field_validator
 from typing import Optional
+from pydantic import Field, field_validator
+
 from premortem_ai.core.normalize_text import normalize_text
 from premortem_ai.core.id_generation import generate_risk_id
+from .base_model import CanonicalModel
 
 
-class RiskItem(BaseModel):
+class RiskItem(CanonicalModel):
     """
     Canonical representation of a single discovered risk.
 
-    Mirrors the JSON Schema:
+    Mirrors JSON Schema:
       - risk_item.schema.json
 
     Used across:
@@ -17,6 +19,12 @@ class RiskItem(BaseModel):
       - theme clustering
       - mitigation generation
       - final RiskReport assembly
+
+    Inherits:
+      - strict validation
+      - deterministic serialization
+      - immutability (frozen model)
+      - version tagging
     """
 
     risk_id: str = Field(
