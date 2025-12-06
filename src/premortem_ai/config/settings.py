@@ -1,63 +1,95 @@
 """
 settings.py
 
-Global configuration object for PreMortem AI.
+Centralized, immutable configuration state for the PreMortem AI system.
+This module governs all default behaviors, including:
 
-This module centralizes:
-    - default model versions
-    - pipeline versioning
-    - global feature toggles
-    - environment-aware overrides (future)
-    - logging levels
+    - LLM model versioning
+    - timeouts and retry policies
+    - domain-level risk/theme/mitigation settings
+    - tracing, metrics, and logging behavior
+    - global pipeline defaults
 
-All downstream modules should import from this file through:
-    from premortem_ai.config import settings
+All values may be overridden with environment variables,
+ensuring production-safe configuration surfaces.
 """
 
+import os
 from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
 class Settings:
-    """
-    Immutable settings object containing global configuration defaults.
-
-    Over time this class can evolve to support:
-        - environment variable overrides
-        - dynamic backend selection (OpenAI, Azure, Anthropic)
-        - feature flags
-        - per-environment config files
-    """
-
-    # ----------------------------------------------------------------------
+    # -------------------------------------------------------------
     # LLM Model Configuration
-    # ----------------------------------------------------------------------
+    # -------------------------------------------------------------
     DEFAULT_MODEL: str = "gpt-5.1"
-    MODEL_TIMEOUT_SECONDS: int = 30
 
-    # ----------------------------------------------------------------------
-    # Pipeline Versioning
-    # ----------------------------------------------------------------------
-    DEFAULT_PIPELINE_VERSION: str = "v1.0.0"
+    # Canonical model version used by the model_router and LLM client
+    MODEL_VERSION: str = os.getenv("PREMORTEM_MODEL_VERSION", "gpt-5.1")
 
-    # ----------------------------------------------------------------------
-    # Logging + Diagnostics
-    # ----------------------------------------------------------------------
-    LOG_LEVEL: str = "INFO"
-    ENABLE_TRACING: bool = False
-    ENABLE_METRICS: bool = False
+    # Timeout for LLM calls (seconds)
+    MODEL_TIMEOUT_SECONDS: int = int(os.getenv("PREMORTEM_MODEL_TIMEOUT", 30))
 
-    # ----------------------------------------------------------------------
-    # Discovery / Scoring / Mitigation Defaults
-    # ----------------------------------------------------------------------
-    DEFAULT_MAX_RISKS: int = 50
+    # -------------------------------------------------------------
+    # Risk Discovery Defaults
+    # -------------------------------------------------------------
+    DEFAULT_MAX_RISKS: int = int(os.getenv("PREMORTEM_MAX_RISKS", 50))
 
-    # Future fields might include:
-    #   ENABLE_THEMES: bool
-    #   ENABLE_MITIGATIONS: bool
-    #   DEFAULT_SEVERITY_MODEL: str
-    #   DEFAULT_CLUSTERING_STRATEGY: str
+    # Risk clustering / latent structure options
+    ENABLE_LATENT_THEME_INFERENCE: bool = (
+        os.getenv("PREMORTEM_ENABLE_LATENT_THEMES", "false").lower() == "true"
+    )
+
+    # -------------------------------------------------------------
+    # Scoring Defaults
+    # -------------------------------------------------------------
+    DEFAULT_SCORE_MODEL: str = os.getenv(
+        "PREMORTEM_SCORE_MODEL", "gpt-5.1-reasoning"
+    )
+
+    # Number of 1–5 scale buckets used for risk scoring
+    SCORE_BUCKETS: int = int(os.getenv("PREMORTEM_SCORE_BUCKETS", 5))
+
+    # -------------------------------------------------------------
+    # Mitigation Defaults
+    # -------------------------------------------------------------
+    MAX_MITIGATIONS_PER_RISK: int = int(
+        os.getenv("PREMORTEM_MAX_MITIGATIONS_PER_RISK", 3)
+    )
+
+    # -------------------------------------------------------------
+    # Summary Defaults
+    # -------------------------------------------------------------
+    ENABLE_SUMMARY: bool = (
+        os.getenv("PREMORTEM_ENABLE_SUMMARY", "true").lower() == "true"
+    )
+
+    # -------------------------------------------------------------
+    # Observability
+    # -------------------------------------------------------------
+    ENABLE_TRACING: bool = (
+        os.getenv("PREMORTEM_ENABLE_TRACING", "false").lower() == "true"
+    )
+
+    ENABLE_METRICS: bool = (
+        os.getenv("PREMORTEM_ENABLE_METRICS", "false").lower() == "true"
+    )
+
+    LOG_LEVEL: str = os.getenv("PREMORTEM_LOG_LEVEL", "INFO")
+
+    # -------------------------------------------------------------
+    # Pipeline Defaults
+    # -------------------------------------------------------------
+    PIPELINE_VERSION: str = os.getenv("PREMORTEM_PIPELINE_VERSION", "v1")
+
+    INCLUDE_METADATA_IN_RESPONSE: bool = (
+        os.getenv("PREMORTEM_INCLUDE_METADATA", "true").lower() == "true"
+    )
 
 
-# Singleton instance used globally across the system
+# -----------------------------------------------------------------
+# Global Settings Instance (Singleton Pattern)
+# -----------------------------------------------------------------
+
 settings = Settings()
