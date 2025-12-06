@@ -26,6 +26,7 @@ These objects are produced sequentially through the pipeline and validated again
 
 Below is the high-level entity relationship diagram:
 
+
 ```
 Project Description
         |
@@ -121,6 +122,7 @@ Purpose:
 - Groups related risks into higher-level patterns to provide leadership-level insight.
 
 Identifier Format:
+
 `theme-xxxxx`
 
 Canonical Structure:
@@ -240,7 +242,7 @@ Determinism guarantees consistency across:
 
 # 5. Domain Rules
 
-Risk Rules
+Risk Rules:
 - Must not exceed 2–3 sentences.
 - Should describe a single failure mode.
 - No overlapping or duplicated phrasing.
@@ -250,19 +252,19 @@ Scoring Rules:
 - Likelihood and impact are bounded 1–5.
 - Severity must be explicitly derived.
 
-Theme Rules
+Theme Rules:
 
 - Must represent abstract patterns.
 - No one-to-one risk duplicates.
 - Must contain at least two risks (unless exception documented).
 
-Mitigation Rules
+Mitigation Rules:
 
 - Action verbs required.
 - Each action must be independently testable.
 - No vague or conceptual statements.
 
-Summary Rules
+Summary Rules:
 
 - Narrative must not exceed ~150 words.
 - Must reference themes, not raw risks.
