@@ -1,83 +1,51 @@
 """
 errors.py
 
-Defines the core exception hierarchy for the PreMortem AI system.
-
-This module provides:
-    - A structured, extensible foundation for domain-specific errors
-    - Clear separation between system, pipeline, and service layer failures
-    - Predictable exception types that API / CLI / SDK consumers can rely on
-
-All exceptions here are intentionally lightweight and free of side effects.
+System-level and pipeline-level exceptions for PreMortem AI.
+All errors derive from PreMortemError to ensure unified error handling.
 """
 
+from .base import PreMortemError
 
-class PreMortemError(Exception):
-    """
-    Base error for all PreMortem AI exceptions.
 
-    All other custom exceptions inherit from this class, making it easy for
-    callers to catch *only* PreMortem-specific issues:
-    
-        try:
-            ...
-        except PreMortemError:
-            handle_domain_issue()
-    """
-
+class ConfigurationError(PreMortemError):
+    """Raised when system or pipeline configuration is invalid."""
     pass
 
 
-class PipelineExecutionError(PreMortemError):
-    """
-    Raised when a failure occurs within the pipeline orchestration process.
-
-    Examples:
-        - LLM inference errors
-        - invalid intermediate structures
-        - component initialization failures
-        - unexpected runtime exceptions during a pipeline stage
-    """
-
+class DependencyError(PreMortemError):
+    """Raised when external dependencies fail (network, providers, file systems)."""
     pass
 
 
 class ModelInvocationError(PreMortemError):
     """
-    Raised when communication with the LLM backend fails.
-
-    Examples:
-        - timeout
-        - API transport failures
-        - unauthorized / invalid credentials
-        - malformed response formats
+    Raised when an LLM invocation fails:
+        • API errors
+        • malformed JSON
+        • hallucinated or missing fields
+        • timeout or rate limit
     """
-
     pass
 
 
-class ConfigurationError(PreMortemError):
-    """
-    Raised when required configuration is missing or invalid.
-
-    Examples:
-        - invalid pipeline version override
-        - unknown model routing strategy
-        - improperly formatted settings values
-    """
-
+class PipelineExecutionError(PreMortemError):
+    """Raised when a pipeline step fails unexpectedly."""
     pass
 
 
-class DependencyError(PreMortemError):
+class ServiceError(PreMortemError):
+    """Raised when a high-level service (analysis_service) fails execution."""
+    pass
+
+
+class RetryableError(PreMortemError):
     """
-    Raised when an external dependency fails.
+    Raised when a transient failure occurs that should be retried.
 
     Examples:
-        - network outages
-        - missing Python packages
-        - I/O or filesystem issues
-        - environment misconfiguration
+        • Rate limits
+        • Temporary upstream failure
+        • Network instability
     """
-
     pass
