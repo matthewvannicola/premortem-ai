@@ -1,13 +1,19 @@
-from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional
+from pydantic import Field, field_validator
+
 from premortem_ai.core.normalize_text import normalize_text
 from premortem_ai.core.id_generation import generate_mitigation_id
+from .base_model import CanonicalModel
 
 
-class MitigationAction(BaseModel):
+class MitigationAction(CanonicalModel):
     """
     Represents a single actionable step in a mitigation plan.
-    Useful for structured LLM output and downstream formatting.
+
+    Used for:
+      - structured LLM output
+      - ordered mitigation formatting
+      - deterministic report generation
     """
 
     step: int = Field(
@@ -37,7 +43,7 @@ class MitigationAction(BaseModel):
         return v
 
 
-class MitigationItem(BaseModel):
+class MitigationItem(CanonicalModel):
     """
     Represents a mitigation package associated with one or more risks.
 
@@ -45,6 +51,12 @@ class MitigationItem(BaseModel):
       - mitigation_generator (LLM-driven reasoning)
       - summary/report generation
       - theme alignment
+
+    Inherits:
+      - strict schema enforcement
+      - deterministic serialization
+      - immutable/frozen model behavior
+      - version tagging
     """
 
     mitigation_id: str = Field(
