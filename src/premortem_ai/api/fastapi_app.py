@@ -1,116 +1,102 @@
 """
-fastapi_app.py
-
 FastAPI application exposing the PreMortem AI pipeline.
-Uses the new functional pipeline entrypoint:
-    run_pipeline(PipelineRequest)
-
-This layer is intentionally thin — all logic lives in domains + pipeline.
 """
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from premortem_ai.models import PipelineRequest, PipelineResponse
-from premortem_ai.pipelines import run_pipeline
+from premortem_ai.models.pipeline_request import PipelineRequest
+from premortem_ai.models.pipeline_response import PipelineResponse
+from premortem_ai.pipelines.run_pipeline import run_pipeline
 from premortem_ai.exceptions import (
     ValidationError,
     CrossReferenceError,
     ModelInvocationError,
     ConfigurationError,
+    PipelineExecutionError,
 )
-from premortem_ai.core.logger import error, info
+from premortem_ai.core.logger import info, error
 
-
-# ---------------------------------------------------------------------------
-# FastAPI Setup
-# ---------------------------------------------------------------------------
 
 app = FastAPI(
-    title="PreMortem AI – Pipeline API",
-    version="2.0.0",
-    description="Automated project risk analysis powered by the PreMortem AI pipeline.",
+    title="PreMortem AI",
+    description="Automated project risk analysis & pre-mortem engine.",
+    version="1.0.0",
 )
+
+
+# ---------------------------------------------------------
+# CORS CONFIG
+# ---------------------------------------------------------
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # tighten for production
+    allow_origins=["*"],  # Update later for security
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-# ---------------------------------------------------------------------------
-# Health Endpoints
-# ---------------------------------------------------------------------------
+# ---------------------------------------------------------
+# HEALTH ENDPOINTS
+# ---------------------------------------------------------
 
 @app.get("/health", tags=["system"])
-def health():
+def health_check():
     return {"status": "ok"}
 
-
-@app.get("/ready", tags=["system"])
-def ready():
-    return {"ready": True}
-
-
-# ---------------------------------------------------------------------------
-# Pipeline Execution Endpoint
-# ---------------------------------------------------------------------------
-
-@app.post(
-    "/pipeline/run",
-    response_model=PipelineResponse,
-    tags=["analysis"],
-    summary="Run the full PreMortem AI pipeline",
-)
-def pipeline_run(request: PipelineRequest):
-    """
-    Execute the complete risk analysis pipeline.
-    """
-    try:
-        info("API: Received pipeline request.")
-        response = run_pipeline(request)
-        return response
-
-    # ---------------- Core validation issues -----------------
-    except ValidationError as exc:
-        error(f"Validation error: {exc}")
-        raise HTTPException(status_code=422, detail=str(exc))
-
-    # ---------------- Cross-reference / schema mismatch -------
-    except CrossReferenceError as exc:
-        error(f"Cross-reference error: {exc}")
-        raise HTTPException(status_code=400, detail=str(exc))
-
-    # ---------------- Model or LLM failure --------------------
-    except ModelInvocationError as exc:
-        error(f"Model invocation error: {exc}")
-        raise HTTPException(status_code=500, detail=str(exc))
-
-    # ---------------- Configuration issues --------------------
-    except ConfigurationError as exc:
-        error(f"Configuration error: {exc}")
-        raise HTTPException(status_code=500, detail=str(exc))
-
-    # ---------------- Unexpected fallback ---------------------
-    except Exception as exc:
-        error(f"Unhandled API error: {exc}")
-        raise HTTPException(status_code=500, detail=f"Unexpected error: {exc}")
-
-
-# ---------------------------------------------------------------------------
-# Root Endpoint
-# ---------------------------------------------------------------------------
 
 @app.get("/", tags=["system"])
 def root():
     return {
-        "message": "PreMortem AI Pipeline API",
-        "endpoints": {
-            "POST /pipeline/run": "Execute a full PreMortem AI analysis",
-            "GET /health": "Basic health check",
-            "GET /ready": "Readiness probe",
-        },
+        "service": "PreMortem AI",
+        "version": "1.0.0",
+        "status": "running",
     }
+
+
+# ---------------------------------------------------------
+# PIPELINE EXECUTION ENDPOINT
+# ---------------------------------------------------------
+
+@app.post("/pipeline/run", response_model=PipelineResponse, tags=["analysis"])
+def run_pipeline_endpoint(request: PipelineRequest):
+    """
+    Execute the full PreMortem AI pipeline.
+    """
+
+    info("Received pipeline request")
+
+    try:
+        # The pipeline returns a PipelineContext
+        context = run_pipeline(request)
+
+        # Convert context → PipelineResponse (FINAL FIX)
+        response = PipelineResponse.from_context(context)
+
+        return response
+
+    except ValidationError as exc:
+        error(f"Validation error: {exc}")
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    except CrossReferenceError as exc:
+        error(f"Cross-reference error: {exc}")
+        raise HTTPException(status_code=422, detail=str(exc))
+
+    except ModelInvocationError as exc:
+        error(f"LLM model invocation error: {exc}")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    except ConfigurationError as exc:
+        error(f"Configuration error: {exc}")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    except PipelineExecutionError as exc:
+        error(f"Pipeline execution failed: {exc}")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    except Exception as exc:
+        error(f"Unhandled exception: {exc}")
+        raise HTTPException(status_code=500, detail="Internal server error")
