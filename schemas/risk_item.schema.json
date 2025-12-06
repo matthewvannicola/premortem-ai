@@ -1,0 +1,59 @@
+{
+  "$id": "https://premortem.ai/schemas/risk_item.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RiskItem",
+  "type": "object",
+  "description": "Canonical representation of a risk extracted during the discovery stage.",
+  "additionalProperties": false,
+
+  "required": [
+    "risk_id",
+    "title",
+    "description",
+    "category",
+    "source_text"
+  ],
+
+  "properties": {
+    "risk_id": {
+      "type": "string",
+      "description": "Deterministic zero-padded ID for the risk.",
+      "pattern": "^risk-[0-9]{5}$"
+    },
+
+    "title": {
+      "type": "string",
+      "description": "Short, human-readable label describing the risk.",
+      "minLength": 3,
+      "maxLength": 200
+    },
+
+    "description": {
+      "type": "string",
+      "description": "One–two sentence explanation of the failure mode.",
+      "minLength": 10,
+      "maxLength": 2000
+    },
+
+    "category": {
+      "type": "string",
+      "description": "High-level classification of the risk.",
+      "enum": [
+        "organizational",
+        "technical",
+        "operational",
+        "financial",
+        "compliance",
+        "security",
+        "unknown"
+      ]
+    },
+
+    "source_text": {
+      "type": "string",
+      "description": "The exact excerpt from the project description used to infer this risk.",
+      "minLength": 1,
+      "maxLength": 2000
+    }
+  }
+}
