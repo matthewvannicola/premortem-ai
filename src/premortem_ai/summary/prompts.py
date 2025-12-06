@@ -1,133 +1,86 @@
 """
 prompts.py
 
-Prompt templates for generating the executive summary of the PreMortem AI analysis.
+Prompt templates for generating the final executive summary.
+This file is intentionally minimal, containing only the canonical
+template used to guide the LLM into producing a structured JSON
+SummaryItem payload.
 
-This prompt enforces:
-    • STRICT JSON output
-    • Correct schema for SummaryItem
-    • Deterministic narrative blocks
-    • Identification of highest-severity risks
-    • Zero hallucinations or added commentary
+The summary synthesizes:
+  - Risk narratives
+  - Severity scoring insights
+  - Theme-level patterns
+  - Mitigation strategy overviews
 """
 
-SUMMARY_INSTRUCTIONS = """
-You are an expert executive risk analyst. Your task is to generate a concise and
-actionable executive summary of the project's risk posture, based on:
+SUMMARY_PROMPT_TEMPLATE = """
+You are an expert in risk analysis, enterprise reporting, and concise executive communication.
 
-    • risk descriptions
-    • scoring results
-    • thematic analysis
-    • mitigation strategy
+Your task is to produce a structured JSON summary of the entire project risk assessment, based on the information below.
 
-FOLLOW THESE RULES STRICTLY:
-
-1. Produce FOUR written narrative fields:
-    - "executive_summary": 4–7 sentences summarizing the overall risk posture.
-    - "top_risks_summary": 3–5 sentences synthesizing the highest-severity risks.
-    - "themes_summary": 3–5 sentences describing systemic patterns across themes.
-    - "mitigation_overview": 3–5 sentences summarizing the overall mitigation strength and gaps.
-
-2. Produce "top_risk_ids":
-    - A JSON array containing the IDs of the 3–5 highest-severity risks.
-    - Use ONLY risk IDs provided.
-    - Order them from highest → lower severity.
-
-3. DO NOT:
-    - Add markdown, bullet points, or formatting symbols.
-    - Add fields other than the required schema.
-    - Invent new risks or change risk IDs.
-    - Include commentary, preamble, or explanation outside the JSON.
-
-4. OUTPUT FORMAT (STRICT JSON):
-{
-    "executive_summary": "<narrative>",
-    "top_risks_summary": "<narrative>",
-    "themes_summary": "<narrative>",
-    "mitigation_overview": "<narrative>",
-    "top_risk_ids": ["risk-00001", "risk-00007", ...]
-}
-""".strip()
-
-
-def build_summary_prompt(
-    risks: dict,
-    scores: dict,
-    themes: list,
-    mitigations: list
-) -> str:
-    """
-    Construct a summary-generation prompt for the LLM.
-
-    Args:
-        risks: dict[str, RiskItem]
-        scores: dict[str, ScoreItem]
-        themes: list[ThemeItem]
-        mitigations: list[MitigationItem]
-
-    Returns:
-        str: Fully assembled LLM prompt.
-    """
-
-    # ------------------------------------------------------------------
-    # RISK BLOCK
-    # ------------------------------------------------------------------
-    risk_lines = []
-    for rid, risk in risks.items():
-        risk_lines.append(f'  "{rid}": "{risk.description.strip()}"')
-    risks_block = ",\n".join(risk_lines)
-
-    # ------------------------------------------------------------------
-    # SCORE BLOCK
-    # ------------------------------------------------------------------
-    score_lines = []
-    for rid, score in scores.items():
-        score_lines.append(
-            f'  "{rid}": {{"likelihood": {score.likelihood}, "impact": {score.impact}, "severity": {score.severity}}}'
-        )
-    scores_block = ",\n".join(score_lines)
-
-    # ------------------------------------------------------------------
-    # THEME BLOCK
-    # ------------------------------------------------------------------
-    theme_lines = []
-    for theme in themes:
-        theme_lines.append(
-            f'- {theme.name}: risks {", ".join(theme.risk_ids)}'
-        )
-    themes_block = "\n".join(theme_lines) if theme_lines else "No themes identified."
-
-    # ------------------------------------------------------------------
-    # MITIGATION BLOCK
-    # ------------------------------------------------------------------
-    mitigation_lines = []
-    for m in mitigations:
-        mitigation_lines.append(
-            f'- {m.title}: covers {", ".join(m.risk_ids)}'
-        )
-    mitigation_block = "\n".join(mitigation_lines) if mitigations else "No mitigations generated."
-
-    # ------------------------------------------------------------------
-    # FINAL PROMPT
-    # ------------------------------------------------------------------
-    return f"""
-{SUMMARY_INSTRUCTIONS}
-
-RISKS:
-{{
+----------------------------------------------------------------------
+RISK DETAILS
+----------------------------------------------------------------------
 {risks_block}
-}}
 
-SCORES:
-{{
-{scores_block}
-}}
-
-THEMES:
+----------------------------------------------------------------------
+THEME ANALYSIS
+----------------------------------------------------------------------
 {themes_block}
 
-MITIGATIONS:
-{mitigation_block}
+----------------------------------------------------------------------
+MITIGATION OVERVIEW
+----------------------------------------------------------------------
+{mitigations_block}
 
-Return ONLY the strict JSON object described above.
-""".strip()
+----------------------------------------------------------------------
+INSTRUCTIONS
+----------------------------------------------------------------------
+Produce an EXECUTIVE-LEVEL summary written in clear, direct, formal language.
+
+Your summary MUST include:
+
+1. "executive_summary"
+    - A high-level explanation of the overall project risk posture.
+    - Describe the most important patterns across risks and themes.
+    - 4–7 sentences.
+
+2. "top_risks_summary"
+    - A concise explanation of the highest-severity risks.
+    - Include WHY they are the most critical.
+    - 3–6 sentences.
+
+3. "themes_summary"
+    - Summaries of the major cross-cutting patterns.
+    - Explain what these themes reveal about the project.
+    - 3–6 sentences.
+
+4. "mitigation_overview"
+    - A synthesis of the strongest and most critical mitigation strategies.
+    - Explain how these mitigations reduce top risks.
+    - 3–6 sentences.
+
+5. "top_risk_ids"
+    - A JSON array listing the **most important risk IDs**, in severity order.
+    - MUST reference only risk IDs shown in the risk list.
+    - MUST include at least 1 risk.
+    - MUST be a flat JSON array of strings.
+
+----------------------------------------------------------------------
+OUTPUT FORMAT (STRICT)
+----------------------------------------------------------------------
+Return ONLY valid JSON in the EXACT structure:
+
+{
+  "executive_summary": "...",
+  "top_risks_summary": "...",
+  "themes_summary": "...",
+  "mitigation_overview": "...",
+  "top_risk_ids": ["risk-001", "risk-002", "risk-003"]
+}
+
+Do NOT include markdown.
+Do NOT include commentary.
+Do NOT include explanations.
+Return ONLY the JSON object.
+"""
