@@ -1,121 +1,131 @@
 """
-Mitigation generation engine for the PreMortem AI pipeline.
+mitigation_generator.py
 
-This module produces targeted, actionable mitigation recommendations for
-each risk by combining:
-    - the risk description
-    - severity scoring outputs
-    - thematic context (optional)
-    - structured LLM guidance
+Enterprise-grade mitigation generation engine for PreMortem AI.
 
-Mitigation outputs must be concrete, practical, and aligned with the
-governance and project-risk frameworks used in enterprise delivery.
+Responsibilities:
+    • Parse LLM mitigation JSON output
+    • Validate schema correctness
+    • Normalize titles, descriptions, and actions
+    • Construct MitigationItem + MitigationAction models
+    • Validate risk references
+    • Generate stable IDs via id_generation utilities
+    • Log warnings and errors
+    • Guarantee deterministic output ordering
 """
 
-from typing import List, Dict, Any
+from typing import Dict, Any, List
 
-from premortem_ai.integrations.openai_client import llm_json
-from premortem_ai.domains.mitigation.prompts import MITIGATION_PROMPT
+from premortem_ai.models import MitigationItem, MitigationAction
 from premortem_ai.core.normalize_text import normalize_text
+from premortem_ai.core.id_generation import generate_mitigation_id
+from premortem_ai.core.logger import info, warning, error
+from premortem_ai.exceptions import (
+    ValidationError,
+    CrossReferenceError,
+    ModelInvocationError,
+)
 
 
-# ---------------------------------------------------------------------
-# Internal Helpers
-# ---------------------------------------------------------------------
+# ----------------------------------------------------------------------
+# PUBLIC API
+# ----------------------------------------------------------------------
 
-def _clean_mitigation_item(raw: Dict[str, Any]) -> Dict[str, Any]:
+def parse_mitigation_output(
+    risks: Dict[str, Any],
+    llm_output: Dict[str, Any],
+) -> List[MitigationItem]:
     """
-    Normalize a mitigation recommendation returned by the LLM.
-
-    Expected fields:
-        - "risk_id": ID of the risk being mitigated
-        - "actions": list of concrete mitigation steps
-        - "rationale": short explanation for the recommendation
-    """
-
-    risk_id = raw.get("risk_id")
-    actions = raw.get("actions", [])
-    rationale = normalize_text(raw.get("rationale", ""))
-
-    if not isinstance(actions, list):
-        actions = []
-
-    # Normalize each action
-    actions = [normalize_text(a).capitalize() for a in actions if isinstance(a, str)]
-
-    return {
-        "risk_id": risk_id,
-        "actions": actions,
-        "rationale": rationale.capitalize() if rationale else "",
-    }
-
-
-def _process_model_response(payload: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Convert raw LLM mitigation list into normalized mitigation objects."""
-    cleaned = []
-    for item in payload:
-        cleaned.append(_clean_mitigation_item(item))
-    return cleaned
-
-
-# ---------------------------------------------------------------------
-# Public Entrypoint
-# ---------------------------------------------------------------------
-
-def run_mitigation_generation(
-    risks: List[Dict[str, Any]],
-    scores: List[Dict[str, Any]],
-    themes: List[Dict[str, Any]] = None,
-    model: str = "gpt-4.1"
-) -> List[Dict[str, Any]]:
-    """
-    Generate mitigation recommendations for each individual risk.
+    Convert LLM mitigation output JSON → List[MitigationItem].
 
     Args:
-        risks (list[dict]): Risk objects (risk_id, title, description)
-        scores (list[dict]): Severity scoring results aligned by risk_id
-        themes (list[dict] or None): Optional theme context
-        model (str): Model identifier for LLM inference
+        risks: dict[risk_id -> RiskItem]
+        llm_output: JSON dict returned by LLM mapping risk_id -> mitigation object
 
     Returns:
-        list[dict]: Schema-ready mitigation recommendation objects.
+        List[MitigationItem]
     """
 
-    # Prepare unified LLM payload per risk
-    combined_payload = []
-    for r in risks:
-        rid = r["risk_id"]
-        severity = next((s for s in scores if s["risk_id"] == rid), None)
+    if not isinstance(llm_output, dict):
+        raise ValidationError("Mitigation output MUST be a JSON object { risk_id: {...}, ... }")
 
-        if severity is None:
-            raise ValueError(f"No severity score found for risk_id {rid}")
+    mitigations: List[MitigationItem] = []
 
-        theme_ids = []
-        if themes:
-            for t in themes:
-                if rid in t.get("risk_ids", []):
-                    theme_ids.append(t.get("name"))
+    for risk_id, raw_obj in llm_output.items():
+        try:
+            item = _build_mitigation_item(risk_id, raw_obj, risks)
+            mitigations.append(item)
 
-        combined_payload.append({
-            "risk_id": rid,
-            "title": r["title"],
-            "description": r["description"],
-            "severity": severity["severity"],
-            "themes": theme_ids,
-        })
+        except ValidationError as e:
+            warning(f"Invalid mitigation for {risk_id}: {e}")
+            continue
 
-    prompt = MITIGATION_PROMPT.format(risks=combined_payload)
+        except Exception as e:
+            error(f"Unexpected error parsing mitigation for {risk_id}: {e}")
+            raise ModelInvocationError(f"Unhandled mitigation generation error: {e}")
 
-    raw_output = llm_json(
-        prompt=prompt,
-        model=model,
-        response_format="list"
+    # Deterministic ordering (by risk_id)
+    mitigations.sort(key=lambda m: m.risk_ids[0])
+
+    info(f"Constructed {len(mitigations)} mitigations.")
+    return mitigations
+
+
+# ----------------------------------------------------------------------
+# INTERNAL VALIDATION + CONSTRUCTION
+# ----------------------------------------------------------------------
+
+def _build_mitigation_item(
+    risk_id: str,
+    raw: Dict[str, Any],
+    risks: Dict[str, Any],
+) -> MitigationItem:
+    """
+    Build a validated MitigationItem from one LLM mitigation object.
+    """
+
+    if risk_id not in risks:
+        raise CrossReferenceError(f"Mitigation references unknown risk_id '{risk_id}'.")
+
+    # Validate required fields
+    if not isinstance(raw, dict):
+        raise ValidationError(f"Mitigation for {risk_id} must be an object.")
+
+    if "title" not in raw or "description" not in raw or "actions" not in raw:
+        raise ValidationError(
+            f"Mitigation for {risk_id} missing required keys: title, description, actions"
+        )
+
+    title = normalize_text(raw["title"])
+    description = normalize_text(raw["description"])
+    raw_actions = raw["actions"]
+
+    if not isinstance(raw_actions, list):
+        raise ValidationError(f"Mitigation.actions for {risk_id} must be a list.")
+
+    if len(raw_actions) < 1:
+        raise ValidationError(f"Mitigation for {risk_id} must define at least 1 action.")
+
+    # Build MitigationAction objects
+    actions: List[MitigationAction] = []
+    for idx, act in enumerate(raw_actions):
+        if not isinstance(act, str):
+            raise ValidationError(f"Action #{idx} for {risk_id} must be a string.")
+
+        actions.append(
+            MitigationAction(
+                action_id=f"{generate_mitigation_id()}-a{idx+1}",
+                description=normalize_text(act),
+            )
+        )
+
+    # Construct MitigationItem
+    item = MitigationItem(
+        mitigation_id=generate_mitigation_id(),
+        title=title,
+        description=description,
+        risk_ids=[risk_id],
+        actions=actions,
     )
 
-    if not isinstance(raw_output, list):
-        raise ValueError("Mitigation generation expected a JSON list of mitigation objects.")
-
-    return _process_model_response(raw_output)
-
-
-__all__ = ["run_mitigation_generation"]
+    return item
