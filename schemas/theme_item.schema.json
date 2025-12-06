@@ -1,0 +1,40 @@
+{
+  "$id": "https://premortem.ai/schemas/theme_item.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ThemeItem",
+  "description": "Canonical representation of a thematic pattern across multiple related risks.",
+  "type": "object",
+  "additionalProperties": false,
+
+  "required": [
+    "theme_id",
+    "label",
+    "risk_ids"
+  ],
+
+  "properties": {
+    "theme_id": {
+      "type": "string",
+      "description": "Deterministic, zero-padded thematic cluster identifier.",
+      "pattern": "^theme-[0-9]{5}$"
+    },
+
+    "label": {
+      "type": "string",
+      "description": "Human-readable theme name summarizing a cross-risk pattern.",
+      "minLength": 3,
+      "maxLength": 200
+    },
+
+    "risk_ids": {
+      "type": "array",
+      "description": "List of risk IDs associated with this theme. Must reference valid Risk entities.",
+      "items": {
+        "type": "string",
+        "pattern": "^risk-[0-9]{5}$"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  }
+}
