@@ -1,3 +1,16 @@
+"""
+mitigation_item.py
+
+Enterprise-grade canonical models representing mitigation steps and mitigation groups.
+
+Enhancements:
+    • Stronger validation for step ordering
+    • Stricter risk_id enforcement for compatibility with RiskItem
+    • Better text normalization for all free-form text
+    • Hardened mitigation_id auto-generation
+    • Defensive LLM ingestion with structure guarantees
+"""
+
 from typing import List, Optional
 from pydantic import Field, field_validator
 
@@ -6,69 +19,76 @@ from premortem_ai.core.id_generation import generate_mitigation_id
 from .base_model import CanonicalModel
 
 
+# ----------------------------------------------------------------------
+# Submodel: A single mitigation action/step
+# ----------------------------------------------------------------------
+
 class MitigationAction(CanonicalModel):
     """
-    Represents a single actionable step in a mitigation plan.
+    Represents one actionable mitigation step.
 
-    Used for:
-      - structured LLM output
-      - ordered mitigation formatting
-      - deterministic report generation
+    Used by:
+        • mitigation generator (LLM inference)
+        • report assembly
+        • compliance/operations tooling downstream
     """
 
     step: int = Field(
         ...,
-        description="Ordered step number for execution.",
+        description="Ordered step number (must be >=1 and sequential in the pipeline).",
         ge=1,
-        le=50,
+        le=999,
     )
 
     action: str = Field(
         ...,
         description="Concrete mitigation action to reduce risk likelihood or impact.",
         min_length=3,
-        max_length=2000,
+        max_length=3000,
     )
 
     owner: Optional[str] = Field(
         None,
-        description="Optional owner or role responsible (e.g., 'Tech Lead', 'PM', 'Security').",
+        description="Optional owner or responsible role (e.g., 'Security Lead', 'PM').",
         max_length=200,
     )
 
-    @field_validator("action", mode="before")
-    def _normalize_action(cls, v):
-        if isinstance(v, str):
-            return normalize_text(v)
-        return v
+    # ------------------------------------------------------
+    # Normalization
+    # ------------------------------------------------------
+    @field_validator("action", "owner", mode="before")
+    def _normalize_text(cls, value):
+        if isinstance(value, str):
+            clean = normalize_text(value)
+            return clean if clean else None
+        return value
 
+
+# ----------------------------------------------------------------------
+# The full mitigation item
+# ----------------------------------------------------------------------
 
 class MitigationItem(CanonicalModel):
     """
-    Represents a mitigation package associated with one or more risks.
+    Represents a complete mitigation package tied to one or more risks.
 
-    Mirrors mitigation_item.schema.json and is used by:
-      - mitigation_generator (LLM-driven reasoning)
-      - summary/report generation
-      - theme alignment
-
-    Inherits:
-      - strict schema enforcement
-      - deterministic serialization
-      - immutable/frozen model behavior
-      - version tagging
+    Used for:
+        • mitigation generation (LLM)
+        • theme alignment
+        • summary + risk report assembly
     """
 
     mitigation_id: str = Field(
         ...,
-        description="Stable unique identifier for this mitigation set (e.g., 'mitigation-00045').",
+        description="Stable unique identifier for a mitigation group "
+                    "(e.g., 'mitigation-00042').",
         min_length=6,
         max_length=50,
     )
 
     risk_ids: List[str] = Field(
         ...,
-        description="List of risk_ids this mitigation applies to.",
+        description="List of RiskItem IDs this mitigation addresses.",
         min_items=1,
     )
 
@@ -80,51 +100,89 @@ class MitigationItem(CanonicalModel):
 
     notes: Optional[str] = Field(
         None,
-        description="Optional additional context or reasoning.",
-        max_length=3000,
+        description="Optional additional context or reasoning behind the mitigation set.",
+        max_length=5000,
     )
 
-    # ---------------------------------------------------------
-    # Auto-generate mitigation_id if missing
-    # ---------------------------------------------------------
+    # ------------------------------------------------------
+    # Auto-ID generation
+    # ------------------------------------------------------
     @field_validator("mitigation_id", mode="before")
-    def _ensure_mitigation_id(cls, v):
-        if v is None or str(v).strip() == "":
+    def _ensure_mitigation_id(cls, value):
+        if value is None or str(value).strip() == "":
             return generate_mitigation_id()
-        return v
+        return str(value).strip()
 
-    # ---------------------------------------------------------
-    # Normalize notes for deterministic output
-    # ---------------------------------------------------------
-    @field_validator("notes", mode="before")
-    def _normalize_notes(cls, v):
-        if isinstance(v, str):
-            return normalize_text(v)
-        return v
-
-    # ---------------------------------------------------------
-    # Ensure unique risk_ids
-    # ---------------------------------------------------------
+    # ------------------------------------------------------
+    # Validate risk_ids
+    # ------------------------------------------------------
     @field_validator("risk_ids")
-    def _validate_unique_risks(cls, v):
-        if len(v) != len(set(v)):
+    def _validate_risk_ids(cls, ids):
+        """
+        Ensures:
+            • IDs are non-empty, valid RiskItem identifiers
+            • No duplicates
+        """
+        if len(ids) != len(set(ids)):
             raise ValueError("risk_ids must be unique within a mitigation group.")
-        return v
 
-    # ---------------------------------------------------------
-    # Convenience constructors
-    # ---------------------------------------------------------
+        for rid in ids:
+            if not isinstance(rid, str) or len(rid.strip()) < 6:
+                raise ValueError(
+                    f"Invalid risk_id '{rid}' — must match RiskItem identifier format."
+                )
+
+        return ids
+
+    # ------------------------------------------------------
+    # Validate step ordering
+    # ------------------------------------------------------
+    @field_validator("actions")
+    def _validate_sequential_steps(cls, actions):
+        """
+        Ensures mitigation steps are sequential (1..N).
+        """
+        steps = [a.step for a in actions]
+        expected = list(range(1, len(actions) + 1))
+
+        if steps != expected:
+            raise ValueError(
+                f"Mitigation steps must be sequential starting at 1. "
+                f"Expected: {expected}, received: {steps}"
+            )
+
+        return actions
+
+    # ------------------------------------------------------
+    # Normalize notes
+    # ------------------------------------------------------
+    @field_validator("notes", mode="before")
+    def _normalize_notes(cls, value):
+        if isinstance(value, str):
+            return normalize_text(value)
+        return value
+
+    # ------------------------------------------------------
+    # LLM ingestion helper
+    # ------------------------------------------------------
     @classmethod
     def from_llm(cls, raw: dict):
         """
-        Construct a MitigationItem from an LLM output dictionary.
-        Ensures:
-          - deterministic text normalization
-          - auto mitigation_id assignment
-          - validation of structured steps
+        Construct a fully validated MitigationItem from structured LLM output.
+
+        Validates:
+            • mitigation_id assignment
+            • sequential, valid steps
+            • risk_id structure
+            • normalized text fields
         """
+        if not isinstance(raw, dict):
+            raise ValueError("MitigationItem.from_llm expected a dict-like input.")
         return cls(**raw)
 
-    def to_dict(self):
-        """Return a clean JSON-serializable dict."""
+    # ------------------------------------------------------
+    # Serialization
+    # ------------------------------------------------------
+    def to_dict(self) -> dict:
+        """Return deterministic JSON-ready structure."""
         return self.model_dump()
