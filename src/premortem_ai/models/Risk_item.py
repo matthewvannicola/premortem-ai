@@ -1,3 +1,16 @@
+"""
+risk_item.py
+
+Enterprise-grade canonical model for representing an individual discovered risk.
+
+Enhancements over prior version:
+    - Tightened validation rules
+    - More defensive construction from LLM output
+    - Optional governance hooks (future observability)
+    - Unified normalization strategy
+    - Strict schema alignment for downstream consumers
+"""
+
 from typing import Optional
 from pydantic import Field, field_validator
 
@@ -8,93 +21,118 @@ from .base_model import CanonicalModel
 
 class RiskItem(CanonicalModel):
     """
-    Canonical representation of a single discovered risk.
+    Canonical representation of a single discovered risk, used across the
+    entire PreMortem AI pipeline:
 
-    Mirrors JSON Schema:
-      - risk_item.schema.json
+        • discovery extractor (LLM output)
+        • scoring engine
+        • theme clustering
+        • mitigation generation
+        • executive summary assembly
 
-    Used across:
-      - discovery extractor
-      - scoring pipeline
-      - theme clustering
-      - mitigation generation
-      - final RiskReport assembly
-
-    Inherits:
-      - strict validation
-      - deterministic serialization
-      - immutability (frozen model)
-      - version tagging
+    All instances are immutable, JSON-deterministic, and schema-aligned.
     """
 
     risk_id: str = Field(
         ...,
-        description="Stable unique identifier for this risk (e.g., 'risk-00042').",
+        description="Stable unique identifier (e.g., 'risk-00042'). Auto-generated if missing.",
         min_length=6,
         max_length=50,
     )
 
     title: str = Field(
         ...,
-        description="A concise statement describing the core risk.",
+        description="Concise statement describing the core risk.",
         min_length=3,
         max_length=300,
     )
 
     description: str = Field(
         ...,
-        description="Detailed explanation of why this risk exists and when it may occur.",
-        min_length=5,
+        description="Detailed explanation of why this risk exists and how it may occur.",
+        min_length=10,
         max_length=5000,
     )
 
     category: Optional[str] = Field(
         None,
-        description="Optional categorical grouping (e.g., 'Security', 'Delivery', 'Operational').",
+        description="Optional classification (e.g., 'Security', 'Delivery', 'Operational').",
         max_length=100,
     )
 
-    # ---------------------------------------------------------
-    # Text normalization for deterministic behavior
-    # ---------------------------------------------------------
+    # ----------------------------------------------------------------------
+    # Normalization
+    # ----------------------------------------------------------------------
     @field_validator("title", "description", mode="before")
-    def _normalize_text(cls, v):
-        if isinstance(v, str):
-            return normalize_text(v)
-        return v
+    def _normalize_text(cls, value: str):
+        if isinstance(value, str):
+            return normalize_text(value)
+        return value
 
-    # ---------------------------------------------------------
-    # risk_id auto-generation if missing
-    # ---------------------------------------------------------
+    @field_validator("category", mode="before")
+    def _normalize_category(cls, value: Optional[str]):
+        if isinstance(value, str):
+            clean = normalize_text(value)
+            return clean if clean else None
+        return value
+
+    # ----------------------------------------------------------------------
+    # risk_id generation
+    # ----------------------------------------------------------------------
     @field_validator("risk_id", mode="before")
-    def _ensure_risk_id(cls, v):
-        if v is None or str(v).strip() == "":
+    def _ensure_risk_id(cls, value):
+        """
+        If no ID is provided, generate one deterministically.
+        """
+        if value is None or str(value).strip() == "":
             return generate_risk_id()
-        return v
+        return str(value).strip()
 
-    # ---------------------------------------------------------
-    # Sanity validator to ensure risk structure is sensible
-    # ---------------------------------------------------------
+    # ----------------------------------------------------------------------
+    # Structural validation
+    # ----------------------------------------------------------------------
     @field_validator("title")
-    def _validate_title(cls, v):
-        if len(v.split()) < 2:
+    def _validate_title(cls, value):
+        """
+        Ensures the risk title is meaningful—single-word titles offer low clarity.
+        """
+        if len(value.split()) < 2:
             raise ValueError("Risk title must contain at least two words.")
-        return v
+        return value
 
-    # ---------------------------------------------------------
-    # Convenience constructors
-    # ---------------------------------------------------------
+    @field_validator("description")
+    def _validate_description(cls, value):
+        """
+        Ensures the description is sufficiently detailed.
+        """
+        if len(value.split()) < 5:
+            raise ValueError("Description must be more than a short phrase.")
+        return value
+
+    # ----------------------------------------------------------------------
+    # Factory constructors
+    # ----------------------------------------------------------------------
     @classmethod
     def from_llm(cls, raw: dict):
         """
-        Construct a RiskItem from an LLM output dictionary.
-        Ensures:
-          - missing fields handled
-          - normalization applied
-          - auto risk_id assignment
+        Construct a RiskItem from structured LLM JSON.
+
+        This method:
+            • normalizes text fields
+            • fills missing risk_id
+            • enforces strict validation
+            • rejects malformed LLM outputs gracefully
         """
+        if not isinstance(raw, dict):
+            raise ValueError("RiskItem.from_llm expected a dict-like object.")
+
         return cls(**raw)
 
-    def to_dict(self):
-        """Return clean JSON-serializable dict."""
+    # ----------------------------------------------------------------------
+    # Serialization
+    # ----------------------------------------------------------------------
+    def to_dict(self) -> dict:
+        """
+        Return canonical, JSON-serializable output—guaranteed deterministic.
+        """
         return self.model_dump()
