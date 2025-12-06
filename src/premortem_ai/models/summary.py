@@ -1,9 +1,11 @@
-from pydantic import BaseModel, Field, field_validator
 from typing import List
+from pydantic import Field, field_validator
+
 from premortem_ai.core.normalize_text import normalize_text
+from .base_model import CanonicalModel
 
 
-class Summary(BaseModel):
+class Summary(CanonicalModel):
     """
     Executive-level project health summary.
 
@@ -11,6 +13,12 @@ class Summary(BaseModel):
       - summary generation module
       - risk_report assembly
       - dashboard or reporting layers
+
+    Inherits:
+      - strict schema validation
+      - deterministic serialization
+      - immutable model behavior
+      - version tagging
     """
 
     health_score: int = Field(
