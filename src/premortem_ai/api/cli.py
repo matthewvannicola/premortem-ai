@@ -1,84 +1,114 @@
 """
-cli.py
+Command-line interface for executing the PreMortem AI pipeline locally.
 
-Command-line interface for executing the PreMortem AI pipeline.
-Uses the new run_pipeline(PipelineRequest) functional API.
+Usage:
+    python -m premortem_ai.api.cli run --text "project description..."
+    python -m premortem_ai.api.cli run --input-file path/to/file.txt
 """
 
 import argparse
 import json
 import sys
+from premortem_ai.models.pipeline_request import PipelineRequest
+from premortem_ai.models.pipeline_response import PipelineResponse
+from premortem_ai.pipelines.run_pipeline import run_pipeline
 
-from premortem_ai.models import PipelineRequest
-from premortem_ai.pipelines import run_pipeline
-from premortem_ai.exceptions import ValidationError, ModelInvocationError
-
-
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="Run a PreMortem AI project analysis from the command line."
-    )
-
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("--file", type=str, help="Path to text file containing project description.")
-    group.add_argument("--text", type=str, help="Project description as raw text.")
-
-    parser.add_argument("--model", type=str, default=None, help="Model override.")
-    parser.add_argument("--pretty", action="store_true", help="Pretty-print JSON output.")
-
-    return parser
+from premortem_ai.exceptions import (
+    ValidationError,
+    ModelInvocationError,
+    ConfigurationError,
+    PipelineExecutionError,
+)
 
 
-def load_text(path: str) -> str:
+def run_pipeline_cli(text: str = None, input_file: str = None, pretty: bool = False):
+    """
+    Execute the PreMortem AI pipeline from the command line.
+    """
+
+    # -------------------------------------------------------------
+    # 1. Handle input source
+    # -------------------------------------------------------------
+    if not text and not input_file:
+        print("ERROR: Provide --text or --input-file", file=sys.stderr)
+        sys.exit(1)
+
+    if input_file:
+        try:
+            with open(input_file, "r", encoding="utf-8") as f:
+                text = f.read().strip()
+        except Exception as exc:
+            print(f"ERROR: Cannot read file: {exc}", file=sys.stderr)
+            sys.exit(1)
+
+    if not text:
+        print("ERROR: Empty input text", file=sys.stderr)
+        sys.exit(1)
+
+    # -------------------------------------------------------------
+    # 2. Build validated PipelineRequest
+    # -------------------------------------------------------------
     try:
-        with open(path, "r", encoding="utf-8") as f:
-            return f.read()
+        request = PipelineRequest(project_description=text)
     except Exception as exc:
-        raise RuntimeError(f"Failed to load file '{path}': {exc}")
+        print(f"[VALIDATION ERROR] {exc}", file=sys.stderr)
+        sys.exit(1)
 
-
-def main():
-    parser = build_parser()
-    args = parser.parse_args()
-
-    # ------------------------------------
-    # Load project description
-    # ------------------------------------
-    if args.file:
-        description = load_text(args.file)
-    else:
-        description = args.text
-
-    # ------------------------------------
-    # Build PipelineRequest
-    # ------------------------------------
-    request = PipelineRequest(
-        project_description=description,
-        model_version_override=args.model,
-        include_metadata=True,
-    )
-
-    # ------------------------------------
-    # Run pipeline
-    # ------------------------------------
+    # -------------------------------------------------------------
+    # 3. Execute the full pipeline
+    # -------------------------------------------------------------
     try:
-        response = run_pipeline(request)
-    except (ValidationError, ModelInvocationError) as exc:
-        print(f"[ERROR] {exc}", file=sys.stderr)
+        context = run_pipeline(request)
+
+        # *** CRITICAL FIX ***
+        response = PipelineResponse.from_context(context)
+
+    except ValidationError as exc:
+        print(f"[VALIDATION ERROR] {exc}", file=sys.stderr)
+        sys.exit(1)
+    except ModelInvocationError as exc:
+        print(f"[MODEL ERROR] {exc}", file=sys.stderr)
+        sys.exit(1)
+    except ConfigurationError as exc:
+        print(f"[CONFIG ERROR] {exc}", file=sys.stderr)
+        sys.exit(1)
+    except PipelineExecutionError as exc:
+        print(f"[PIPELINE ERROR] {exc}", file=sys.stderr)
         sys.exit(1)
     except Exception as exc:
         print(f"[UNEXPECTED ERROR] {exc}", file=sys.stderr)
         sys.exit(1)
 
-    # ------------------------------------
-    # Output JSON
-    # ------------------------------------
-    payload = response.model_dump()
+    # -------------------------------------------------------------
+    # 4. Output results
+    # -------------------------------------------------------------
+    output = response.model_dump()
 
-    if args.pretty:
-        print(json.dumps(payload, indent=2))
+    if pretty:
+        print(json.dumps(output, indent=4))
     else:
-        print(json.dumps(payload))
+        print(json.dumps(output))
+
+
+def main():
+    parser = argparse.ArgumentParser(description="PreMortem AI CLI")
+
+    subparsers = parser.add_subparsers(dest="command")
+
+    # -------------------------------------------------------------
+    # run command
+    # -------------------------------------------------------------
+    run_parser = subparsers.add_parser("run", help="Run full PreMortem AI pipeline")
+    run_parser.add_argument("--text", type=str, help="Direct input text")
+    run_parser.add_argument("--input-file", type=str, help="Text file containing project description")
+    run_parser.add_argument("--pretty", action="store_true", help="Pretty-print JSON output")
+
+    args = parser.parse_args()
+
+    if args.command == "run":
+        run_pipeline_cli(text=args.text, input_file=args.input_file, pretty=args.pretty)
+    else:
+        parser.print_help()
 
 
 if __name__ == "__main__":
