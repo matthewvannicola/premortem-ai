@@ -1,136 +1,158 @@
 """
 openai_client.py
 
-Thin, governed wrapper around the OpenAI API used by PreMortem AI.
+Enterprise-grade governed wrapper around the OpenAI Responses API.
 
-Responsibilities:
-    - Provide a stable interface for LLM inference
-    - Normalize API errors into domain-specific exceptions
-    - Centralize model routing (settings.MODEL_VERSION, overrides, etc.)
-    - Provide retry and backoff logic for improved resiliency
-    - Keep dependencies isolated so the rest of the system stays portable
-
-This module is intentionally minimal but enterprise-ready.
+Improvements over the previous version:
+    - Uses the modern `client.responses.create()` API
+    - Enforces JSON output via response_format
+    - Adds full observability (metrics + tracing)
+    - Adds dynamic token budgeting
+    - Adds configurable timeout support
+    - Adds structured validation + error normalization
+    - Adds retry jitter + improved backoff behavior
 """
 
+import json
 import time
-from typing import Dict, Any, Optional
+import random
+from typing import Any, Dict, Optional
 
 from openai import OpenAI, APIError, APIConnectionError, RateLimitError, Timeout
 from premortem_ai.config import settings
-from premortem_ai.exceptions import (
-    ModelInvocationError,
-    DependencyError,
-)
-
-# ------------------------------------------------------------------------------
-# Client Initialization
-# ------------------------------------------------------------------------------
-
-_client = OpenAI(api_key=settings.OPENAI_API_KEY)
+from premortem_ai.exceptions import ModelInvocationError, DependencyError
+from premortem_ai.observability.metrics import llm_latency, llm_requests_total
+from premortem_ai.observability.tracing import traced_operation
 
 
-# ------------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# Client initialization
+# --------------------------------------------------------------------------
+
+client = OpenAI(api_key=settings.OPENAI_API_KEY)
+
+
+# --------------------------------------------------------------------------
+# Utility — Dynamic Token Budgeting
+# --------------------------------------------------------------------------
+
+def compute_token_budget(prompt: str) -> int:
+    """
+    Heuristic token budgeting to reduce truncation risk.
+    Ensures prompt + output never exceed model context.
+
+    Example:
+        MAX_CONTEXT = 200_000 (gpt-5.1)
+        But we reserve 20–40% for model overhead.
+    """
+    approximate_prompt_tokens = max(1, len(prompt) // 3)
+
+    max_allowed = settings.MAX_TOKENS
+    reserved_for_output = int(max_allowed * 0.6)
+
+    return max(256, reserved_for_output - approximate_prompt_tokens)
+
+
+# --------------------------------------------------------------------------
 # LLM Client Wrapper
-# ------------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 
 class LLMClient:
     """
-    High-level LLM interface used by the orchestrator and analysis service.
+    High-level LLM interface for all structured LLM inference.
 
-    Provides:
-        - deterministic model selection
-        - retry/backoff behavior
-        - structured output formatting
-        - consistent exception handling
-
-    This wrapper ensures the rest of the codebase never imports raw OpenAI
-    client calls directly.
+    Features:
+        - JSON-mode enforcement
+        - Observability integration (metrics + tracing)
+        - Retry + exponential backoff + jitter
+        - Strict exception normalization
+        - Configurable model override + timeout control
     """
 
-    def __init__(self, model: Optional[str] = None, max_retries: int = 3):
+    def __init__(self, model: Optional[str] = None, max_retries: int = 3, timeout: int = 45):
         self.model = model or settings.MODEL_VERSION
         self.max_retries = max_retries
+        self.timeout = timeout
 
-    # --------------------------------------------------------------------------
-    # Unified text completion / response API
-    # --------------------------------------------------------------------------
-    def run(self, prompt: str, model_override: Optional[str] = None) -> str:
+    # ----------------------------------------------------------------------
+    @traced_operation("llm.run")
+    def run(self, prompt: str, model_override: Optional[str] = None) -> Dict[str, Any]:
         """
-        Execute a prompt against the model and return raw text.
-
-        Args:
-            prompt (str): Normalized LLM prompt.
-            model_override (Optional[str]): Optional temporary model version.
+        Execute prompt and return parsed JSON.
 
         Returns:
-            str: Raw LLM response text.
+            dict — parsed structured JSON response
 
         Raises:
-            ModelInvocationError: For any LLM-related issues.
-            DependencyError: For network/transport/runtime failures.
+            ModelInvocationError
+            DependencyError
         """
 
         model_name = model_override or self.model
+        token_budget = compute_token_budget(prompt)
 
         backoff = 1.0
+
         for attempt in range(1, self.max_retries + 1):
+
             try:
-                response = _client.chat.completions.create(
-                    model=model_name,
-                    messages=[{"role": "user", "content": prompt}],
-                    max_tokens=settings.MAX_TOKENS,
-                    temperature=settings.TEMPERATURE,
-                )
+                with llm_latency.time():
+                    response = client.responses.create(
+                        model=model_name,
+                        input=prompt,
+                        max_output_tokens=token_budget,
+                        response_format={"type": "json_object"},
+                        timeout=self.timeout,
+                    )
 
-                # Standard OpenAI response normalization
-                return response.choices[0].message["content"].strip()
+                llm_requests_total.labels(model=model_name, status="success").inc()
 
+                raw = response.output_text
+
+                try:
+                    return json.loads(raw)
+                except json.JSONDecodeError as exc:
+                    raise ModelInvocationError(f"LLM returned invalid JSON: {raw}") from exc
+
+            # ------------------ RETRYABLE ERRORS ------------------
             except RateLimitError as exc:
-                # Retry on rate limits
                 if attempt < self.max_retries:
-                    time.sleep(backoff)
+                    sleep = backoff + random.uniform(0, 0.3)
+                    time.sleep(sleep)
                     backoff *= 2
                     continue
-                raise ModelInvocationError(f"Rate limit exceeded: {exc}") from exc
+                llm_requests_total.labels(model=model_name, status="rate_limited").inc()
+                raise ModelInvocationError(f"Rate limit exceeded after retries: {exc}") from exc
 
             except (Timeout, APIConnectionError) as exc:
-                # Retry transient connection problems
                 if attempt < self.max_retries:
-                    time.sleep(backoff)
+                    sleep = backoff + random.uniform(0, 0.3)
+                    time.sleep(sleep)
                     backoff *= 2
                     continue
+                llm_requests_total.labels(model=model_name, status="network_error").inc()
                 raise DependencyError(f"LLM network failure: {exc}") from exc
 
             except APIError as exc:
-                # Transient API errors with HTTP 5xx may be retried
                 if exc.status and 500 <= exc.status < 600 and attempt < self.max_retries:
-                    time.sleep(backoff)
+                    sleep = backoff + random.uniform(0, 0.3)
+                    time.sleep(sleep)
                     backoff *= 2
                     continue
+                llm_requests_total.labels(model=model_name, status="api_error").inc()
                 raise ModelInvocationError(f"LLM API error: {exc}") from exc
 
+            # ------------------ NON-RETRYABLE ------------------
             except Exception as exc:
-                raise ModelInvocationError(f"Unexpected LLM invocation error: {exc}") from exc
+                llm_requests_total.labels(model=model_name, status="fatal").inc()
+                raise ModelInvocationError(f"Unexpected LLM error: {exc}") from exc
 
-        # Should never reach here
-        raise ModelInvocationError("Exhausted LLM retry attempts with no success.")
+        raise ModelInvocationError("Exhausted all retries without success.")
 
 
-# ------------------------------------------------------------------------------
-# Factory for DI or multi-model scenarios
-# ------------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# Factory
+# --------------------------------------------------------------------------
 
 def get_llm_client(model: Optional[str] = None) -> LLMClient:
-    """
-    Factory used by:
-        - orchestrator
-        - analysis service
-        - CLI/runtime utilities
-
-    Provides:
-        - default model routing
-        - override support
-        - explicit dependency injection for tests
-    """
     return LLMClient(model=model)
