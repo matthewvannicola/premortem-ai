@@ -215,7 +215,7 @@ Extracts, normalizes, and validates Risk entities.
 
 ## 6. Post /analysis/score
 
-Computes likelyhood, impact, and severity for each risk
+Computes likelihood, impact, and severity for each risk
 
 ### Request:
 
@@ -250,7 +250,7 @@ Computes likelyhood, impact, and severity for each risk
 
 ### Validation Rules:
 
-- Likelyhood/Impact must be integers 1–5
+- Likelihood/Impact must be integers 1–5
 - Severity must be deterministically derived
 - `risk_id` must exist in input payload
 
