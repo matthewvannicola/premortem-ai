@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field, field_validator
 from typing import List
+from pydantic import Field, field_validator
 
 from premortem_ai.models.risk_item import RiskItem
 from premortem_ai.models.score_item import ScoreItem
@@ -8,8 +8,10 @@ from premortem_ai.models.mitigation_item import MitigationItem
 from premortem_ai.models.summary import Summary
 from premortem_ai.models.metadata import Metadata
 
+from .base_model import CanonicalModel
 
-class RiskReport(BaseModel):
+
+class RiskReport(CanonicalModel):
     """
     Canonical top-level aggregate for the full PreMortem AI analysis output.
 
@@ -18,7 +20,13 @@ class RiskReport(BaseModel):
       - pipeline_response model
       - PDF/Docs/Notion report generation
       - dashboards + analytics
-      - test fixtures and regression validation
+      - regression + invariant validation
+
+    Inherits:
+      - strict schema enforcement
+      - deterministic serialization
+      - immutable model behavior
+      - version tagging
     """
 
     risks: List[RiskItem] = Field(
@@ -56,7 +64,7 @@ class RiskReport(BaseModel):
     )
 
     # ---------------------------------------------------------
-    # Validation: Ensure risk_ids referenced by scores/themes/mitigations exist
+    # Cross-reference validation
     # ---------------------------------------------------------
     @field_validator("scores")
     def _validate_scores_reference_known_risks(cls, scores, info):
@@ -103,7 +111,7 @@ class RiskReport(BaseModel):
         return mitigations
 
     # ---------------------------------------------------------
-    # Convenience helpers
+    # Convenience helper
     # ---------------------------------------------------------
     @classmethod
     def from_components(
@@ -119,7 +127,7 @@ class RiskReport(BaseModel):
         Clean, safe aggregate builder used by orchestrator.
 
         Ensures:
-          - all references validated
+          - all ID references are validated
           - deterministic serialization
           - schema alignment
         """
