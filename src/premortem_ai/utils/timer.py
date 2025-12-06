@@ -1,50 +1,54 @@
 """
 timer.py
 
-Lightweight timing utility used throughout the PreMortem AI pipeline.
-
-This module provides:
-    - A context manager for measuring code block duration
-    - A simple `.duration_ms` attribute for downstream logging or metrics
-    - A future-friendly design for integration with observability tooling
-
-Usage:
-
-    from premortem_ai.utils.timer import Timer
-
-    with Timer() as t:
-        run_pipeline_stage()
-
-    print(t.duration_ms)
-
+Execution timing utility for the PreMortem AI pipeline.
+Supports both:
+    • context manager timing
+    • explicit start/stop timing for pipeline stages
 """
 
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Dict, Optional
 
 
 @dataclass
 class Timer:
-    """
-    Simple context manager for measuring execution time in milliseconds.
+    # For context manager mode
+    start_time: float = 0.0
+    end_time: float = 0.0
+    duration_ms: Optional[int] = None
 
-    Attributes:
-        start (float): timestamp at context entry (epoch seconds)
-        end (float): timestamp at context exit
-        duration_ms (int): total elapsed time in milliseconds
-    """
+    # For pipeline stage tracking
+    stage_start_times: Dict[str, float] = field(default_factory=dict)
+    stage_durations: Dict[str, float] = field(default_factory=dict)
 
-    start: float = 0.0
-    end: float = 0.0
-    duration_ms: int | None = None
-
+    # ----------------------------
+    # Context Manager Support
+    # ----------------------------
     def __enter__(self):
-        self.start = time.time()
+        self.start_time = time.time()
         return self
 
     def __exit__(self, exc_type, exc, tb):
-        self.end = time.time()
-        self.duration_ms = int((self.end - self.start) * 1000)
+        self.end_time = time.time()
+        self.duration_ms = int((self.end_time - self.start_time) * 1000)
+        return False  # allow exceptions through
 
-        # Returning False allows exceptions to propagate normally.
-        return False
+    # ----------------------------
+    # Stage Timing (Pipeline)
+    # ----------------------------
+    def start(self, stage: str):
+        self.stage_start_times[stage] = time.time()
+
+    def stop(self, stage: str) -> float:
+        if stage not in self.stage_start_times:
+            raise RuntimeError(f"Timer.stop('{stage}') called without start().")
+
+        elapsed = time.time() - self.stage_start_times[stage]
+        self.stage_durations[stage] = round(elapsed, 4)
+        return elapsed
+
+    def get(self, stage: str) -> Optional[float]:
+        return self.stage_durations.get(stage)
+
