@@ -1,106 +1,140 @@
 """
-Deterministic rule-based scoring for the PreMortem AI pipeline.
+severity_rules.py
 
-This module provides baseline severity signals using transparent,
-auditable heuristics. These rules complement LLM scoring by offering:
-    - Repeatability across runs
-    - Explainable logic suitable for governance
-    - A stable baseline that reduces model variance
+Defines deterministic, verifiable scoring rules for PreMortem AI.
 
-Rule-based scoring does NOT attempt to fully evaluate risk context — that
-is handled by the LLM — but rather provides predictable anchors for the
-final hybrid scoring model.
+This module provides:
+    • Allowed numeric ranges for likelihood & impact
+    • Mapping from qualitative categories to numeric values (LLM outputs)
+    • A canonical severity formula
+    • Fallback scoring for non-LLM flows
+    • Input validation utilities
+
+These rules MUST remain stable, as they define the core governance logic
+of risk scoring across all environments and pipeline versions.
 """
 
-from typing import Dict, Any
-from premortem_ai.core.normalize_text import normalize_text
+from typing import Optional
+from premortem_ai.exceptions import ValidationError
 
 
-# ---------------------------------------------------------------------
-# Internal Heuristic Rules
-# ---------------------------------------------------------------------
+# ----------------------------------------------------------------------
+# Canonical numeric ranges enforced across the system
+# ----------------------------------------------------------------------
 
-KEYWORD_WEIGHTS = {
-    "failure": 2,
-    "delay": 2,
-    "security": 3,
-    "outage": 3,
-    "dependency": 1,
-    "integration": 1,
-    "resource": 1,
-    "budget": 2,
-    "quality": 2,
-    "scalability": 1,
+LIKELIHOOD_MIN = 1
+LIKELIHOOD_MAX = 5
+
+IMPACT_MIN = 1
+IMPACT_MAX = 5
+
+
+# ----------------------------------------------------------------------
+# Qualitative → Numeric mappings (used by LLM scoring outputs)
+# ----------------------------------------------------------------------
+
+LIKELIHOOD_MAP = {
+    "very low": 1,
+    "low": 2,
+    "medium": 3,
+    "high": 4,
+    "very high": 5,
+}
+
+IMPACT_MAP = {
+    "minimal": 1,
+    "low": 2,
+    "moderate": 3,
+    "significant": 4,
+    "critical": 5,
 }
 
 
-def _keyword_score(text: str) -> int:
+# ----------------------------------------------------------------------
+# Validation Utilities
+# ----------------------------------------------------------------------
+
+def normalize_category(value: str) -> str:
+    """Normalize qualitative labels for consistent mapping."""
+    return value.strip().lower()
+
+
+def validate_numeric_range(
+    value: int, *, min_val: int, max_val: int, field_name: str
+) -> None:
+    """Ensure numeric values are within expected ranges."""
+    if not (min_val <= value <= max_val):
+        raise ValidationError(
+            f"{field_name} value {value} is out of range [{min_val}, {max_val}]."
+        )
+
+
+# ----------------------------------------------------------------------
+# Canonical severity formula
+# ----------------------------------------------------------------------
+
+def compute_severity_score(likelihood: int, impact: int) -> int:
     """
-    Score a piece of text based on weighted keyword presence.
+    Compute a deterministic severity score.
+
+    Formula:
+        severity = likelihood × impact
+
+    Examples:
+        likelihood=3, impact=4 → 12
+        likelihood=5, impact=5 → 25
     """
-
-    text = normalize_text(text)
-    score = 0
-
-    for keyword, weight in KEYWORD_WEIGHTS.items():
-        if keyword in text:
-            score += weight
-
-    return min(score, 10)  # cap for stability
-
-
-def _length_score(description: str) -> int:
-    """
-    Estimate impact/likelihood using description clarity and length.
-    Longer descriptions usually indicate more complexity or ambiguity.
-    """
-
-    length = len(description.split())
-    if length > 40:
-        return 4
-    if length > 25:
-        return 3
-    if length > 10:
-        return 2
-    return 1
-
-
-# ---------------------------------------------------------------------
-# Public Rule Engine
-# ---------------------------------------------------------------------
-
-def rule_based_score(risk: Dict[str, Any]) -> Dict[str, int]:
-    """
-    Compute deterministic rule-based severity signals.
-
-    Returns:
-        {
-            "likelihood": <0–10>,
-            "impact": <0–10>,
-            "rationale": "deterministic rationale text"
-        }
-    """
-
-    title = risk.get("title", "")
-    description = risk.get("description", "")
-
-    kw_score = _keyword_score(title + " " + description)
-    length_sig = _length_score(description)
-
-    # Simple weighted model (tuned for clarity + auditability)
-    likelihood = min(10, kw_score + length_sig)
-    impact = min(10, kw_score + (length_sig * 2))
-
-    rationale = (
-        f"Rule-based scoring applied: keyword_score={kw_score}, "
-        f"description_length_signal={length_sig}."
+    validate_numeric_range(
+        likelihood,
+        min_val=LIKELIHOOD_MIN,
+        max_val=LIKELIHOOD_MAX,
+        field_name="Likelihood",
+    )
+    validate_numeric_range(
+        impact,
+        min_val=IMPACT_MIN,
+        max_val=IMPACT_MAX,
+        field_name="Impact",
     )
 
-    return {
-        "likelihood": likelihood,
-        "impact": impact,
-        "rationale": rationale,
-    }
+    return likelihood * impact
 
 
-__all__ = ["rule_based_score"]
+# ----------------------------------------------------------------------
+# Qualitative Scoring Helpers (LLM outputs)
+# ----------------------------------------------------------------------
+
+def resolve_likelihood(value: str) -> int:
+    """Resolve qualitative likelihood labels to numeric values."""
+    key = normalize_category(value)
+    if key not in LIKELIHOOD_MAP:
+        raise ValidationError(f"Unknown likelihood category: {value}")
+    return LIKELIHOOD_MAP[key]
+
+
+def resolve_impact(value: str) -> int:
+    """Resolve qualitative impact labels to numeric values."""
+    key = normalize_category(value)
+    if key not in IMPACT_MAP:
+        raise ValidationError(f"Unknown impact category: {value}")
+    return IMPACT_MAP[key]
+
+
+# ----------------------------------------------------------------------
+# Fallback deterministic scoring
+# ----------------------------------------------------------------------
+
+def fallback_score(
+    likelihood: Optional[int] = None, impact: Optional[int] = None
+) -> int:
+    """
+    Compute a stable fallback score when LLM scoring is unavailable.
+
+    Rules:
+        • Missing values default to system median (3)
+        • Severity is always computed via canonical formula
+    """
+    likelihood = likelihood or 3
+    impact = impact or 3
+
+    return compute_severity_score(likelihood, impact)
