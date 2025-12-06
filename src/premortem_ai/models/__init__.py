@@ -1,12 +1,15 @@
 """
-Pydantic v2 model exports for the PreMortem AI system.
+Canonical Pydantic v2 data models for the PreMortem AI system.
 
-This __init__.py intentionally re-exports all canonical data models to provide:
+This module re-exports all public-facing model classes to provide:
   - clean import paths (e.g., from premortem_ai.models import RiskItem)
-  - stable public API boundaries
-  - IDE auto-completion across the entire project
-  - versionable, governed data model surface area
+  - stable, governed public API boundaries
+  - deterministic model behavior via CanonicalModel
+  - IDE auto-completion + documentation consistency
+  - a single source of truth for schema-aligned model definitions
 """
+
+from .base_model import CanonicalModel
 
 from .risk_item import RiskItem
 from .score_item import ScoreItem
@@ -18,15 +21,17 @@ from .risk_report import RiskReport
 from .pipeline_request import PipelineRequest
 from .pipeline_response import PipelineResponse
 
+
 __all__ = [
-    "RiskItem",
-    "ScoreItem",
-    "ThemeItem",
-    "MitigationItem",
-    "MitigationAction",
-    "Summary",
+    "CanonicalModel",
     "Metadata",
-    "RiskReport",
+    "MitigationAction",
+    "MitigationItem",
     "PipelineRequest",
     "PipelineResponse",
+    "RiskItem",
+    "RiskReport",
+    "ScoreItem",
+    "Summary",
+    "ThemeItem",
 ]
