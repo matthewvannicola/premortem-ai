@@ -1,108 +1,114 @@
 """
-Theme clustering engine for the PreMortem AI pipeline.
+theme_clusterer.py
 
-This stage groups individual risks into higher-level thematic categories
-based on conceptual similarity, shared underlying causes, or systemic
-patterns. Themes improve interpretability and provide structure for
-downstream mitigation and summary generation.
+Enterprise-grade theme clustering engine for PreMortem AI.
 
-The clustering workflow:
-    1. Provide the LLM with the full set of risks
-    2. Receive JSON describing the themes and associated risk_ids
-    3. Normalize and sanitize LLM output
-    4. Produce schema-ready theme objects
+Responsibilities:
+    • Parse the LLM-generated theme JSON
+    • Validate schema correctness
+    • Normalize name/description/risk references
+    • Ensure all risk_ids exist
+    • Deduplicate risk_ids
+    • Generate stable ThemeItem objects
+    • Handle errors with structured fallbacks
 """
 
 from typing import List, Dict, Any
 
-from premortem_ai.integrations.openai_client import llm_json
-from premortem_ai.domains.themes.prompts import THEME_CLUSTERING_PROMPT
+from premortem_ai.models import ThemeItem
+from premortem_ai.core.logger import info, warning, error
 from premortem_ai.core.normalize_text import normalize_text
+from premortem_ai.core.id_generation import generate_theme_id
+from premortem_ai.exceptions import (
+    ValidationError,
+    ModelInvocationError,
+    CrossReferenceError,
+)
 
 
-# ---------------------------------------------------------------------
-# Internal Helpers
-# ---------------------------------------------------------------------
+# ----------------------------------------------------------------------
+# MAIN PARSER
+# ----------------------------------------------------------------------
 
-def _clean_theme_item(raw: Dict[str, Any]) -> Dict[str, Any]:
+def parse_theme_output(risks: Dict[str, Any], llm_output: Any) -> List[ThemeItem]:
     """
-    Normalize a single theme object returned by the LLM.
-
-    Expected fields:
-        - "name": short descriptive theme title
-        - "description": short explanation of the theme
-        - "risk_ids": list of associated risk identifiers
-    """
-
-    name = normalize_text(raw.get("name", ""))
-    description = normalize_text(raw.get("description", ""))
-    risk_ids = raw.get("risk_ids", [])
-
-    if not isinstance(risk_ids, list):
-        risk_ids = []
-
-    return {
-        "name": name.capitalize() if name else "",
-        "description": description.capitalize() if description else "",
-        "risk_ids": risk_ids,
-    }
-
-
-def _process_model_response(payload: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Convert LLM output into normalized schema-ready theme objects."""
-    cleaned = []
-    for item in payload:
-        cleaned.append(_clean_theme_item(item))
-    return cleaned
-
-
-# ---------------------------------------------------------------------
-# Public Entrypoint
-# ---------------------------------------------------------------------
-
-def run_theme_clustering(
-    risks: List[Dict[str, Any]],
-    scores: List[Dict[str, Any]],
-    model: str
-) -> List[Dict[str, Any]]:
-    """
-    Execute LLM-assisted theme clustering.
+    Convert LLM theme output JSON → List[ThemeItem].
 
     Args:
-        risks (list[dict]): Risk objects from discovery (with risk_id).
-        scores (list[dict]): Severity scoring objects (aligned by risk_id).
-        model (str): Selected LLM model identifier.
+        risks: dict[risk_id -> RiskItem]
+        llm_output: JSON array returned by LLM (already parsed)
 
     Returns:
-        list[dict]: List of theme objects (schema-ready).
+        List[ThemeItem]
     """
 
-    # Prepare compact LLM payload
-    combined_payload = [
-        {
-            "risk_id": r.get("risk_id"),
-            "title": r.get("title"),
-            "description": r.get("description"),
-            "severity": next(
-                (s["severity"] for s in scores if s["risk_id"] == r["risk_id"]),
-                None
-            ),
-        }
-        for r in risks
-    ]
+    if not isinstance(llm_output, list):
+        raise ValidationError("LLM theme output must be a JSON array.")
 
-    prompt = THEME_CLUSTERING_PROMPT.format(risks=combined_payload)
+    themes: List[ThemeItem] = []
 
-    raw_output = llm_json(
-        prompt=prompt,
-        model=model,
-        response_format="list"
+    for idx, raw_theme in enumerate(llm_output):
+        try:
+            theme_item = _build_theme_item(raw_theme, risks)
+            themes.append(theme_item)
+
+        except ValidationError as e:
+            warning(f"Theme #{idx} is invalid: {e}")
+            continue  # skip bad themes
+
+        except Exception as e:
+            error(f"Unexpected theme parsing error: {e}")
+            raise ModelInvocationError(
+                f"Unhandled error building theme from LLM output: {e}"
+            )
+
+    # Deterministic ordering (alphabetical by name)
+    themes.sort(key=lambda t: t.name)
+
+    info(f"Constructed {len(themes)} themes successfully.")
+    return themes
+
+
+# ----------------------------------------------------------------------
+# INTERNAL THEME CONSTRUCTION
+# ----------------------------------------------------------------------
+
+def _build_theme_item(raw: Dict[str, Any], risks: Dict[str, Any]) -> ThemeItem:
+    """
+    Build and validate a ThemeItem object from raw LLM JSON.
+    """
+
+    if not isinstance(raw, dict):
+        raise ValidationError("Theme entry must be a JSON object.")
+
+    # Validate required fields
+    if "name" not in raw or "description" not in raw or "risk_ids" not in raw:
+        raise ValidationError(
+            "Each theme must include 'name', 'description', and 'risk_ids'."
+        )
+
+    name = normalize_text(raw["name"])
+    description = normalize_text(raw["description"])
+
+    raw_ids = raw["risk_ids"]
+    if not isinstance(raw_ids, list):
+        raise ValidationError("risk_ids must be a list.")
+
+    # Normalize, dedupe, and validate referenced risk_ids
+    cleaned_ids = []
+    for rid in raw_ids:
+        rid = str(rid).strip()
+        if rid not in risks:
+            raise CrossReferenceError(f"Theme references unknown risk_id '{rid}'.")
+        if rid not in cleaned_ids:
+            cleaned_ids.append(rid)
+
+    if len(cleaned_ids) < 1:
+        raise ValidationError("Theme must include at least one valid risk_id.")
+
+    return ThemeItem(
+        theme_id=generate_theme_id(),
+        name=name,
+        description=description,
+        risk_ids=cleaned_ids,
     )
-
-    if not isinstance(raw_output, list):
-        raise ValueError("Theme clustering expected a JSON list of theme objects.")
-
-    return _process_model_response(raw_output)
-
-
-__all__ = ["run_theme_clustering"]
