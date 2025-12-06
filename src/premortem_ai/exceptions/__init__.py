@@ -1,52 +1,36 @@
 """
-PreMortem AI – Exception Package
+exceptions package export surface.
 
-This package defines the full structured exception hierarchy used across
-the system. All errors raised by PreMortem AI components inherit from
-`PreMortemError`, allowing callers to selectively catch:
-
-    - domain-wide errors              (PreMortemError)
-    - validation issues               (ValidationError + subtypes)
-    - pipeline execution failures     (PipelineExecutionError)
-    - model invocation errors         (ModelInvocationError)
-    - configuration and dependency    issues
-    - input payload errors
-
-Modules:
-    errors.py             → Core system + pipeline exception types
-    validation_errors.py  → Structural, schema, and cross-reference validation
+Centralizes import access for all exception types so callers can do:
+    from premortem_ai.exceptions import ValidationError, ConfigurationError
 """
 
+from .base import PreMortemError
 from .errors import (
-    PreMortemError,
-    PipelineExecutionError,
-    ModelInvocationError,
     ConfigurationError,
     DependencyError,
+    ModelInvocationError,
+    PipelineExecutionError,
+    ServiceError,
+    RetryableError,
 )
-
 from .validation_errors import (
     ValidationError,
     SchemaValidationError,
     CrossReferenceError,
-    NormalizationError,
-    InputPayloadError,
+    DataConsistencyError,
 )
 
 __all__ = [
-    # Base root error
     "PreMortemError",
-
-    # Execution-level errors
-    "PipelineExecutionError",
-    "ModelInvocationError",
     "ConfigurationError",
     "DependencyError",
-
-    # Validation-level errors
+    "ModelInvocationError",
+    "PipelineExecutionError",
+    "ServiceError",
+    "RetryableError",
     "ValidationError",
     "SchemaValidationError",
     "CrossReferenceError",
-    "NormalizationError",
-    "InputPayloadError",
+    "DataConsistencyError",
 ]
