@@ -1,49 +1,89 @@
 """
-Deterministic ID generation utilities for the PreMortem AI pipeline.
+id_generation.py
 
-Risk, theme, and mitigation items must be assigned stable identifiers so that:
-- Downstream components (scoring, themes, mitigation) can reference items safely.
-- Reports and audit logs remain consistent across executions.
-- External systems (Google Docs, Notion, dashboards) have stable cross-links.
+Enterprise-grade ID generation utilities for PreMortem AI.
 
-This module provides safe, human-readable ID generators with strict prefixes.
+Goals:
+    • Generate collision-resistant, sortable, human-readable identifiers
+    • Maintain consistent prefix patterns required across all canonical models
+    • Ensure thread-safe operation with deterministic formatting
 """
 
 import uuid
+import threading
+
+# Thread-safe integer counters for deterministic ID generation.
+# These counters are not persisted—suitable for API pipelines and ephemeral jobs.
+# For distributed systems, UUID fallback ensures global safety.
+_counters = {
+    "risk": 1,
+    "theme": 1,
+    "mitigation": 1,
+    "score": 1,
+}
+
+_counter_lock = threading.Lock()
 
 
-def _generate(prefix: str) -> str:
+# ----------------------------------------------------------------------
+# Internal counter utility
+# ----------------------------------------------------------------------
+def _next_counter(prefix: str) -> int:
     """
-    Internal helper for generating compact UUID4-based identifiers.
-
-    Args:
-        prefix (str): Short domain prefix (e.g. "risk", "theme").
-
-    Returns:
-        str: An identifier of the form "<prefix>-xxxxxxxx".
+    Safely increment the counter for the given prefix.
+    Thread-safe to prevent ID collisions in multi-threaded runs.
     """
-    raw = uuid.uuid4().hex[:8]  # short but collision-resistant
-    return f"{prefix}-{raw}"
+    with _counter_lock:
+        current = _counters.get(prefix, 1)
+        _counters[prefix] = current + 1
+        return current
 
 
+# ----------------------------------------------------------------------
+# ID Format Helpers
+# ----------------------------------------------------------------------
+def _format_id(prefix: str, number: int) -> str:
+    """
+    Format IDs into a sortable, deterministic structure:
+        prefix-00001
+        prefix-00042
+        prefix-01050
+    """
+    return f"{prefix}-{number:05d}"
+
+
+# ----------------------------------------------------------------------
+# Public ID Generators
+# ----------------------------------------------------------------------
 def generate_risk_id() -> str:
-    """
-    Generate a unique ID for a risk item.
-
-    Example:
-        risk-3fa29bc1
-    """
-    return _generate("risk")
+    num = _next_counter("risk")
+    return _format_id("risk", num)
 
 
 def generate_theme_id() -> str:
+    num = _next_counter("theme")
+    return _format_id("theme", num)
+
+
+def generate_mitigation_id() -> str:
+    num = _next_counter("mitigation")
+    return _format_id("mitigation", num)
+
+
+def generate_score_id() -> str:
+    num = _next_counter("score")
+    return _format_id("score", num)
+
+
+# ----------------------------------------------------------------------
+# Global Fallback UUID Generator
+# ----------------------------------------------------------------------
+def generate_uuid_id(prefix: str) -> str:
     """
-    Generate a unique ID for a theme item.
+    Fallback for distributed architectures or cases where counters
+    do not guarantee global uniqueness.
 
-    Example:
-        theme-a91be442
+    Output example:
+        risk-550e8400-e29b-41d4-a716-446655440000
     """
-    return _generate("theme")
-
-
-__all__ = ["generate_risk_id", "generate_theme_id"]
+    return f"{prefix}-{uuid.uuid4()}"
