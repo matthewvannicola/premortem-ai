@@ -53,6 +53,8 @@ This structure ensures clean separation of concerns and enterprise-grade maintai
 
 ### Architecture Diagram
 
+The diagram below illustrates the deterministic, governed architecture that powers PreMortem AI.
+
 ```mermaid
 flowchart TD
     %% =======================
@@ -102,18 +104,18 @@ flowchart TD
 
 ```
 premortem_ai/
-├── analysis_service/
-├── api/
-├── config/
-├── core/
-├── domains/
-├── exceptions/
-├── llm/
-├── models/
-├── observability/
-├── pipelines/
-├── tests/
-└── utils/
+├── analysis_service/      # Optional external analysis layer (batch jobs, hooks, integrations)
+├── api/                   # FastAPI app, routing, request/response models, server entrypoints
+├── config/                # Environment settings, model routing configs, feature flags
+├── core/                  # Core primitives: ID generation, validation, normalization utilities
+├── domains/               # Domain engines: Discovery, Scoring, Mitigation, Summary
+├── exceptions/            # Typed exception classes for predictable, structured errors
+├── llm/                   # LLM clients, schema-enforced prompts, retries, model governance
+├── models/                # Pydantic V2 data models and schemas
+├── observability/         # Logging, timing instrumentation, metadata, audit utilities
+├── pipelines/             # Orchestrator, execution graph, context management, deterministic flow
+├── tests/                 # Unit tests + integration tests for domains and pipeline
+└── utils/                 # Shared utilities (text processing, file I/O, serialization, etc.)
 ```
 
 Each folder corresponds to a specific architectural responsibility:
@@ -121,20 +123,62 @@ domain engines, inference governance, orchestration, schemas, observability, and
 
 ---
 
-## 4. Processing Flow
+## 4. Installation
+
+PreMortem AI requires Python 3.10+ and installation inside a virtual environment is recommended.
+
+### 4.1 Clone the repository
+
+```bash
+git clone https://github.com/matthewvannicola/premortem_ai.git
+cd premortem_ai
+```
+
+### 4.2 Create and activate a virtual environment
+
+```bash
+python -m venv venv
+source venv/bin/activate    # macOS/Linux
+venv\Scripts\activate       # Windows
+```
+
+### 4.3 Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4.4 Install the package locally (optional, recommended)
+
+```bash
+pip install -e .
+```
+
+### 4.5 Configure environment variables (if needed)
+
+Model routing, logging verbosity, and feature flags can be configured in:
+
+- `config/settings.py`
+- `config/pipeline_configs.py`
+
+After installation, you can run the API server or CLI as documented below.
+
+---
+
+## 5. Processing Flow
 
 The pipeline executes in four deterministic stages, each producing validated structured data.
 
-### 4.1 Discovery  
+### 5.1 Discovery  
 Extracts atomic risks, normalizes text, assigns stable IDs, and produces `RiskItem` objects.
 
-### 4.2 Scoring  
+### 5.2 Scoring  
 Assigns probability and impact using rules + LLM-assisted scoring; outputs `ScoreItem` objects.
 
-### 4.3 Mitigation  
+### 5.3 Mitigation  
 Generates actionable mitigation strategies tied to each risk; outputs `MitigationItem` objects.
 
-### 4.4 Summary  
+### 5.4 Summary  
 Synthesizes themes and executive-level insight into a `Summary` object.
 
 All outputs must successfully parse into their Pydantic V2 schemas.  
@@ -142,7 +186,7 @@ Any validation failure halts the pipeline with a typed structured error.
 
 ---
 
-## 5. Pipeline Orchestration
+## 6. Pipeline Orchestration
 
 The orchestration layer governs deterministic execution:
 
@@ -164,7 +208,7 @@ Guarantees:
 
 ---
 
-## 6. LLM Integration Layer
+## 7. LLM Integration Layer
 
 All inference is routed through a governed integration layer that guarantees structured, schema-validated outputs.
 
@@ -185,7 +229,7 @@ This layer converts LLM output from raw text into **contract-enforced structured
 
 ---
 
-## 7. API Usage
+## 8. API Usage
 
 Start the FastAPI server:
 
@@ -206,7 +250,7 @@ Returns a full `PipelineResponse` with risks, scores, mitigations, themes, and s
 
 ---
 
-## 8. CLI Usage
+## 9. CLI Usage
 
 ```bash
 premortem analyze "Your project description here"
@@ -216,7 +260,7 @@ Outputs results to console or saves as JSON.
 
 ---
 
-## 9. Configuration
+## 10. Configuration
 
 Centralized in `config/settings.py` and `pipeline_configs.py`.
 
@@ -224,7 +268,7 @@ Supports environment overrides, model routing rules, feature toggles, logging ve
 
 ---
 
-## 10. Why PreMortem AI Outperforms Existing Tools
+## 11. Why PreMortem AI Outperforms Existing Tools
 
 - **Strict Schema Guarantees** prevent malformed or ambiguous LLM output.  
 - **Deterministic Pipeline Execution** ensures reproducible results across runs.  
@@ -234,7 +278,40 @@ Supports environment overrides, model routing rules, feature toggles, logging ve
 
 ---
 
-## 11. License
+## 12. Potential Additions
+
+---
+
+## Potential Additions
+
+PreMortem AI is designed with extensibility in mind. Future enhancements may include:
+
+- **Model Benchmarking Suite**  
+  Automated evaluation of model tiers, response quality, and latency across domains.
+
+- **Interactive Web UI**  
+  A lightweight dashboard for submitting project descriptions and visualizing pipeline outputs.
+
+- **Extended Domain Engines**  
+  Support for additional risk classes such as compliance, security, or financial exposure.
+
+- **Custom Plugin System**  
+  Allow organizations to register their own scoring rules, mitigation templates, or summary logic.
+
+- **Advanced Observability**  
+  Integration with OpenTelemetry, Prometheus, or enterprise SIEM systems.
+
+- **Dataset Export + Training Hooks**  
+  Export structured pipeline outputs for fine-tuning domain-specific LLM models.
+
+- **CI/CD Integration**  
+  Tests, schema checks, and pipeline determinism validation during deployment.
+
+These additions preserve PreMortem AI’s deterministic foundation while expanding its usability across more enterprise scenarios.
+
+---
+
+## 13. License
 
 MIT License — see `LICENSE`.
 
