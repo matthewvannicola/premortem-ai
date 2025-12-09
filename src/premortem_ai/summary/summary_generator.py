@@ -16,6 +16,9 @@ from premortem_ai.exceptions import (
     ModelInvocationError,
 )
 
+# Import the real summary builder
+from premortem_ai.summary.summary_builder import generate_summary
+
 
 def _clean_text(value: str) -> str:
     """Apply consistent cleaning pipeline."""
@@ -23,7 +26,7 @@ def _clean_text(value: str) -> str:
 
 
 # ----------------------------------------------------------------------
-# PUBLIC API
+# PUBLIC API — PARSER
 # ----------------------------------------------------------------------
 
 def parse_summary_output(
@@ -86,3 +89,31 @@ def parse_summary_output(
     except Exception as e:
         error(f"Unexpected error building SummaryItem: {e}")
         raise ModelInvocationError(f"Failed to create SummaryItem: {e}")
+
+
+# ----------------------------------------------------------------------
+# BACKWARDS COMPATIBILITY — STAGE WRAPPER
+# ----------------------------------------------------------------------
+
+def run_summary_stage(
+    risks: Dict[str, Any],
+    scores: Dict[str, Any],
+    themes: Dict[str, Any],
+    mitigations: Dict[str, Any],
+    model_override: str | None = None,
+):
+    """
+    Historical pipeline entrypoint.
+
+    Older pipeline code imported `run_summary_stage`.  
+    Modern architecture uses `generate_summary()` in summary_builder.py.
+
+    This wrapper preserves compatibility while calling the real implementation.
+    """
+    return generate_summary(
+        risks=risks,
+        scores=scores,
+        themes=themes,
+        mitigations=mitigations,
+        model_override=model_override,
+    )
