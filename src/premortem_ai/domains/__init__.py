@@ -13,7 +13,7 @@ from premortem_ai.summary.summary_generator import run_summary_stage
 __all__ = [
     "run_discovery_stage",
     "run_scoring_stage",
-    "run_mitigation_stage",
     "run_theme_stage",
+    "run_mitigation_stage",
     "run_summary_stage",
 ]
