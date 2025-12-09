@@ -1,9 +1,9 @@
 """
-scoring_engine.py
-
 LLM-powered scoring stage of the PreMortem AI pipeline.
 Computes likelihood, impact, and severity for each discovered risk.
 """
+
+from typing import Dict, List, Optional, Tuple, Any   # <-- ADD THIS LINE
 
 from premortem_ai.models import RiskItem, ScoreItem
 from premortem_ai.llm import get_llm_client, resolve_model_version
