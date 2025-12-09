@@ -103,7 +103,7 @@ def run_summary_stage(
     Backwards-compatible wrapper calling the actual summary builder.
     Imported lazily to avoid circular import.
     """
-    from premortem_ai.summary.summary_builder import generate_summary
+    from premortem_ai.domains.summary.summary_builder import generate_summary
 
     return generate_summary(
         risks=risks,
