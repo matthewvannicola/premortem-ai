@@ -66,8 +66,25 @@ class Metrics:
         if not self.enabled:
             return
         logger.info(f"[metric] event | {name} | tags={tags or {}}")
+        
+    # ----------------------------------------------------------------------
+    # LLM-specific metric helpers
+    # ----------------------------------------------------------------------
+
+    def llm_latency(model_name: str, duration: float):
+        """
+        Records latency for an LLM request.
+        """
+        metrics.observe("llm.latency", duration, tags={"model": model_name})
 
 
-# Shared global instance
-metrics = Metrics()
+    def llm_requests_total(model_name: str):
+        """
+        Increments a counter tracking requests made to a given model.
+        """
+        metrics.increment("llm.requests.total", tags={"model": model_name})
+
+
+    # Shared global instance
+    metrics = Metrics()
 
