@@ -31,7 +31,8 @@ def _validate_llm_output(data: dict, risk_id: str):
         val = data[field]
         if not isinstance(val, int) or not (1 <= val <= PIPELINE_CONFIG.score_buckets):
             raise ValidationError(
-                f"Invalid score '{field}={val}' for risk {risk_id}. Expected 1-{PIPELINE_CONFIG.score_buckets}"
+                f"Invalid score '{field}={val}' for risk {risk_id}. "
+                f"Expected 1-{PIPELINE_CONFIG.score_buckets}"
             )
 
 
@@ -72,7 +73,7 @@ def run_scoring(risks: Dict[str, RiskItem], model_override: str = None) -> Dict[
         _validate_llm_output(llm_scores, rid)
 
         # ------------------------------------------------------------
-        # Apply custom severity calculation (existing scoring utilities)
+        # Apply custom severity calculation utilities
         # ------------------------------------------------------------
         computed_severity = compute_severity(
             likelihood=llm_scores["likelihood"],
@@ -96,3 +97,17 @@ def run_scoring(risks: Dict[str, RiskItem], model_override: str = None) -> Dict[
 
     info(f"Completed scoring for {len(results)} risks.")
     return results
+
+
+# ------------------------------------------------------------
+# BACKWARDS COMPATIBILITY WRAPPER
+# ------------------------------------------------------------
+
+def run_scoring_stage(risks: Dict[str, RiskItem], model_override: str | None = None):
+    """
+    Compatibility wrapper for older pipeline code.
+
+    Historically the pipeline imported `run_scoring_stage()`.
+    This adapter preserves that import path while using the new `run_scoring()`.
+    """
+    return run_scoring(risks=risks, model_override=model_override)
