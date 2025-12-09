@@ -16,9 +16,6 @@ from premortem_ai.exceptions import (
     ModelInvocationError,
 )
 
-# Import the real summary builder
-from premortem_ai.summary.summary_builder import generate_summary
-
 
 def _clean_text(value: str) -> str:
     """Apply consistent cleaning pipeline."""
@@ -103,13 +100,11 @@ def run_summary_stage(
     model_override: str | None = None,
 ):
     """
-    Historical pipeline entrypoint.
-
-    Older pipeline code imported `run_summary_stage`.  
-    Modern architecture uses `generate_summary()` in summary_builder.py.
-
-    This wrapper preserves compatibility while calling the real implementation.
+    Backwards-compatible wrapper calling the actual summary builder.
+    Imported lazily to avoid circular import.
     """
+    from premortem_ai.summary.summary_builder import generate_summary
+
     return generate_summary(
         risks=risks,
         scores=scores,
