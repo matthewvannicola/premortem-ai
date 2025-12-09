@@ -280,10 +280,6 @@ Supports environment overrides, model routing rules, feature toggles, logging ve
 
 ## 12. Potential Additions
 
----
-
-## Potential Additions
-
 PreMortem AI is designed with extensibility in mind. Future enhancements may include:
 
 - **Model Benchmarking Suite**  
