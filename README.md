@@ -51,6 +51,51 @@ Model selections, environment overrides, and pipeline feature flags.
 
 This structure ensures clean separation of concerns and enterprise-grade maintainability.
 
+### Architecture Diagram
+
+```mermaid
+flowchart TD
+    %% =======================
+    %% USER INPUT
+    %% =======================
+    A[Project Description] --> B[Discovery Engine]
+
+    %% =======================
+    %% PIPELINE STAGES
+    %% =======================
+    B --> C[Scoring Engine]
+    C --> D[Mitigation Engine]
+    D --> E[Summary Engine]
+    E --> F[PipelineResponse]
+
+    %% =======================
+    %% LLM INTEGRATION LAYER
+    %% =======================
+    subgraph LLM_Integration_Layer
+        R1[Model Router]
+        R2[Schema-Enforced Response]
+        R3[Retry and Timeout Governance]
+    end
+
+    B --> LLM_Integration_Layer
+    C --> LLM_Integration_Layer
+    D --> LLM_Integration_Layer
+
+    %% =======================
+    %% OBSERVABILITY
+    %% =======================
+    subgraph Observability
+        O1[Timing Instrumentation]
+        O2[Structured Logging]
+        O3[Validation Metadata]
+    end
+
+    B --> Observability
+    C --> Observability
+    D --> Observability
+    E --> Observability
+```
+
 ---
 
 ## 3. Repository Structure
