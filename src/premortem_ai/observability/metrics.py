@@ -50,3 +50,28 @@ def llm_requests_total(model_name: str):
         "llm.requests.total",
         tags={"model": model_name}
     )
+
+
+# ------------------------------------------------------------------------------
+# Predefined metric instances (used across the system)
+# ------------------------------------------------------------------------------
+
+class Counter:
+    def __init__(self, name: str):
+        self.name = name
+
+    def labels(self, **tags):
+        return _LabeledCounter(self.name, tags)
+
+
+class _LabeledCounter:
+    def __init__(self, name: str, tags):
+        self.name = name
+        self.tags = tags
+
+    def inc(self, value: int = 1):
+        metrics.increment(self.name, value=value, tags=self.tags)
+
+
+# Tracks how often routing decisions occur by source & status
+model_routing_total = Counter("model.routing.total")
