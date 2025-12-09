@@ -5,14 +5,13 @@ LLM-powered scoring stage of the PreMortem AI pipeline.
 Computes likelihood, impact, and severity for each discovered risk.
 """
 
-from typing import Dict
 from premortem_ai.models import RiskItem, ScoreItem
 from premortem_ai.llm import get_llm_client, resolve_model_version
 from premortem_ai.domains.scoring.prompts import SCORING_PROMPT
+from premortem_ai.domains.scoring.severity_engine import compute_severity
+from premortem_ai.domains.scoring.severity_rules import apply_severity_rules
 from premortem_ai.exceptions import ValidationError, ModelInvocationError
 from premortem_ai.utils.logger import info, error
-from premortem_ai.scoring.severity_engine import compute_severity
-from premortem_ai.scoring.severity_rules import apply_severity_rules
 from premortem_ai.config import PIPELINE_CONFIG
 
 
