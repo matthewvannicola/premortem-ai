@@ -42,7 +42,7 @@ def generate_mitigations(
     model_override: str = None
 ) -> Dict[str, List[MitigationItem]]:
     """
-    Generate mitigations for each risk.
+    Generate mitigation recommendations for each risk.
 
     Returns:
         dict[risk_id -> list[MitigationItem]]
@@ -100,3 +100,20 @@ def generate_mitigations(
 
     info("Mitigation generation complete.")
     return results
+
+
+# --------------------------------------------------------
+# BACKWARDS COMPATIBILITY WRAPPER
+# --------------------------------------------------------
+
+def run_mitigation_stage(
+    risks: Dict[str, RiskItem], model_override: str | None = None
+) -> Dict[str, List[MitigationItem]]:
+    """
+    Legacy wrapper for older pipeline imports.
+
+    Historically the pipeline imported run_mitigation_stage().
+    Internally, mitigation logic is implemented via generate_mitigations().
+    This keeps the pipeline stable without modifying callers.
+    """
+    return generate_mitigations(risks=risks, model_override=model_override)
