@@ -73,18 +73,18 @@ flowchart TD
     %% ============================================================
     %% GOVERNED LLM INTEGRATION LAYER (Schema-Enforced)
     %% ============================================================
-    subgraph LLM_Integration_Layer[LLM Integration Layer<br>(Governed, Schema-Enforced)]
-        R1[Model Router<br>(Tier Selection)]
-        R2[Structured Response Enforcement<br>(Schema Validation)]
-        R3[Retry/Timeout Governance]
+    subgraph LLM_Integration_Layer[LLM Integration Layer - Governed, Schema Enforced]
+        R1[Model Router]
+        R2[Structured Response Enforcement]
+        R3[Retry and Timeout Governance]
     end
 
-    %% LLM calls originate from domain engines
+    %% LLM calls from engines
     B -->|Inference Request| LLM_Integration_Layer
     C -->|Inference Request| LLM_Integration_Layer
     D -->|Inference Request| LLM_Integration_Layer
 
-    %% Structured outputs return back into domain engines
+    %% Structured outputs return to engines
     LLM_Integration_Layer -->|Structured Output| B
     LLM_Integration_Layer -->|Structured Output| C
     LLM_Integration_Layer -->|Structured Output| D
@@ -92,7 +92,7 @@ flowchart TD
     %% ============================================================
     %% OBSERVABILITY (Cross-Cutting System Layer)
     %% ============================================================
-    subgraph Observability[Observability Layer<br>(Telemetry + Audit)]
+    subgraph Observability[Observability Layer - Telemetry and Audit]
         O1[Timing Instrumentation]
         O2[Structured Logging]
         O3[Validation Metadata]
