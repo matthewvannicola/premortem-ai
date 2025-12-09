@@ -18,7 +18,7 @@ from premortem_ai.models.risk_item import RiskItem
 from premortem_ai.models.score_item import ScoreItem
 from premortem_ai.models.theme_item import ThemeItem
 from premortem_ai.models.mitigation_item import MitigationItem
-from premortem_ai.models.summary import Summary   # ✅ FIXED IMPORT
+from premortem_ai.models.summary import Summary  
 
 
 class PipelineResponse(BaseModel):
@@ -42,7 +42,7 @@ class PipelineResponse(BaseModel):
         ..., description="Generated mitigation strategies for each risk."
     )
 
-    summary: Summary = Field(                     # ✅ UPDATED TYPE
+    summary: Summary = Field(                  
         ..., description="Executive summary synthesizing the entire analysis output."
     )
 
@@ -65,12 +65,6 @@ class PipelineResponse(BaseModel):
         """
         Convert the PipelineContext produced by run_pipeline() into a
         hardened, API-safe PipelineResponse Pydantic model.
-
-        Args:
-            context: PipelineContext object
-
-        Returns:
-            PipelineResponse instance
         """
 
         return cls(
