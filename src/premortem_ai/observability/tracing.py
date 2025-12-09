@@ -112,3 +112,35 @@ class Tracer:
 
 # Global shared tracer instance
 tracer = Tracer()
+
+# ------------------------------------------------------------------------------
+# Decorator-based tracing helper
+# ------------------------------------------------------------------------------
+
+from functools import wraps
+
+def traced_operation(name: str):
+    """
+    Decorator for tracing execution of internal operations.
+    Logs start, end, and duration automatically.
+
+    Example:
+        @traced_operation("risk.scoring.compute")
+        def compute_scores(...):
+            ...
+    """
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            start = time.perf_counter()
+            logger.info(f"[trace] {name} | start")
+
+            try:
+                return func(*args, **kwargs)
+            finally:
+                duration_ms = (time.perf_counter() - start) * 1000
+                logger.info(f"[trace] {name} | end | duration_ms={duration_ms:.2f}")
+
+        return wrapper
+    return decorator
+
