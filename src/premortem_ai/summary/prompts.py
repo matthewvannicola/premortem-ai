@@ -84,3 +84,17 @@ Do NOT include commentary.
 Do NOT include explanations.
 Return ONLY the JSON object.
 """
+def build_summary_prompt(
+    risks_block: str,
+    themes_block: str,
+    mitigations_block: str,
+) -> str:
+    """
+    Construct a fully formatted summary prompt by injecting
+    structured blocks into the SUMMARY_PROMPT_TEMPLATE.
+    """
+    return SUMMARY_PROMPT_TEMPLATE.format(
+        risks_block=risks_block,
+        themes_block=themes_block,
+        mitigations_block=mitigations_block,
+    )
