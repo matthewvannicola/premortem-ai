@@ -80,3 +80,13 @@ def run_discovery(project_description: str, model_override: str = None) -> Dict[
     # Convert to RiskItem domain models
     info(f"Discovered {len(cleaned)} risks.")
     return _convert_to_models(cleaned)
+
+def run_discovery_stage(project_description: str, model_override: str | None = None) -> Dict[str, RiskItem]:
+    """
+    Backwards-compatible wrapper used by the pipeline.
+
+    Historically the pipeline imported `run_discovery_stage`; the new
+    implementation exposes `run_discovery`. This adapter preserves that
+    contract without changing callers.
+    """
+    return run_discovery(project_description=project_description, model_override=model_override)
