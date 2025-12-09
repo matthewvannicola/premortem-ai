@@ -7,7 +7,7 @@ into a validated SummaryItem object.
 
 from typing import Dict, Any, List
 
-from premortem_ai.summary.models import SummaryItem
+from premortem_ai.domains.summary.models import SummaryItem
 from premortem_ai.domains.shared.text import collapse_whitespace, ensure_sentence
 from premortem_ai.utils.logger import info, warning, error
 from premortem_ai.exceptions import (
