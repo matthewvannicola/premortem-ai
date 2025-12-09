@@ -13,7 +13,7 @@ Responsibilities:
 from typing import Dict, Any, List
 
 from premortem_ai.llm import get_llm_client, resolve_model_version
-from premortem_ai.summary.prompts import build_summary_prompt
+from premortem_ai.domains.summary.prompts import build_summary_prompt
 from premortem_ai.summary.summary_generator import parse_summary_output
 from premortem_ai.exceptions import ModelInvocationError
 from premortem_ai.core.logger import info, error
