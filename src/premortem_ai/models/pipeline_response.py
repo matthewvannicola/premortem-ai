@@ -11,7 +11,6 @@ This model is returned by:
 It is constructed from a PipelineContext produced by run_pipeline().
 """
 
-
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
 
@@ -19,7 +18,7 @@ from premortem_ai.models.risk_item import RiskItem
 from premortem_ai.models.score_item import ScoreItem
 from premortem_ai.models.theme_item import ThemeItem
 from premortem_ai.models.mitigation_item import MitigationItem
-from premortem_ai.models.summary_item import SummaryItem
+from premortem_ai.models.summary import Summary   # ✅ FIXED IMPORT
 
 
 class PipelineResponse(BaseModel):
@@ -43,7 +42,7 @@ class PipelineResponse(BaseModel):
         ..., description="Generated mitigation strategies for each risk."
     )
 
-    summary: SummaryItem = Field(
+    summary: Summary = Field(                     # ✅ UPDATED TYPE
         ..., description="Executive summary synthesizing the entire analysis output."
     )
 
@@ -79,7 +78,7 @@ class PipelineResponse(BaseModel):
             scores=context.scores,
             themes=context.themes,
             mitigations=context.mitigations,
-            summary=context.summary,
+            summary=context.summary,          # already a Summary object
             stage_timings=context.stage_timings,
             metadata=context.request_metadata,
         )
