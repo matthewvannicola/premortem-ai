@@ -88,3 +88,18 @@ def generate_themes(risks: Dict[str, RiskItem], model_override: str = None) -> D
 
     info(f"Generated {len(results)} themes.")
     return results
+
+
+# --------------------------------------------------------
+# BACKWARDS COMPATIBILITY WRAPPER
+# --------------------------------------------------------
+
+def run_theme_stage(risks: Dict[str, RiskItem], model_override: str | None = None) -> Dict[str, ThemeItem]:
+    """
+    Legacy wrapper for older pipeline calls.
+
+    Historically the pipeline imported `run_theme_stage`.
+    Internally, theming is now implemented via `generate_themes`.
+    This adapter keeps the pipeline stable without modifying callers.
+    """
+    return generate_themes(risks=risks, model_override=model_override)
