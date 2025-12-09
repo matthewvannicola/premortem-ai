@@ -57,45 +57,53 @@ The diagram below illustrates the deterministic, governed architecture that powe
 
 ```mermaid
 flowchart TD
-    %% =======================
+    %% ============================================================
     %% USER INPUT
-    %% =======================
-    A[Project Description] --> B[Discovery Engine]
+    %% ============================================================
+    A[Project Description] -->|Ingest| B[Discovery Engine]
 
-    %% =======================
-    %% PIPELINE STAGES
-    %% =======================
-    B --> C[Scoring Engine]
-    C --> D[Mitigation Engine]
-    D --> E[Summary Engine]
-    E --> F[PipelineResponse]
+    %% ============================================================
+    %% DOMAIN ENGINE PIPELINE (Deterministic Control Plane)
+    %% ============================================================
+    B -->|Validated Risks| C[Scoring Engine]
+    C -->|Scored Items| D[Mitigation Engine]
+    D -->|Mitigations| E[Summary Engine]
+    E -->|Assemble Response| F[PipelineResponse]
 
-    %% =======================
-    %% LLM INTEGRATION LAYER
-    %% =======================
-    subgraph LLM_Integration_Layer
-        R1[Model Router]
-        R2[Schema-Enforced Response]
-        R3[Retry and Timeout Governance]
+    %% ============================================================
+    %% GOVERNED LLM INTEGRATION LAYER (Schema-Enforced)
+    %% ============================================================
+    subgraph LLM_Integration_Layer[LLM Integration Layer<br>(Governed, Schema-Enforced)]
+        R1[Model Router<br>(Tier Selection)]
+        R2[Structured Response Enforcement<br>(Schema Validation)]
+        R3[Retry/Timeout Governance]
     end
 
-    B --> LLM_Integration_Layer
-    C --> LLM_Integration_Layer
-    D --> LLM_Integration_Layer
+    %% LLM calls originate from domain engines
+    B -->|Inference Request| LLM_Integration_Layer
+    C -->|Inference Request| LLM_Integration_Layer
+    D -->|Inference Request| LLM_Integration_Layer
 
-    %% =======================
-    %% OBSERVABILITY
-    %% =======================
-    subgraph Observability
+    %% Structured outputs return back into domain engines
+    LLM_Integration_Layer -->|Structured Output| B
+    LLM_Integration_Layer -->|Structured Output| C
+    LLM_Integration_Layer -->|Structured Output| D
+
+    %% ============================================================
+    %% OBSERVABILITY (Cross-Cutting System Layer)
+    %% ============================================================
+    subgraph Observability[Observability Layer<br>(Telemetry + Audit)]
         O1[Timing Instrumentation]
         O2[Structured Logging]
         O3[Validation Metadata]
     end
 
+    %% Observability instruments all stages
     B --> Observability
     C --> Observability
     D --> Observability
     E --> Observability
+    F --> Observability
 ```
 
 ---
@@ -103,19 +111,68 @@ flowchart TD
 ## 3. Repository Structure
 
 ```
-premortem_ai/
-├── analysis_service/      # Optional external analysis layer (batch jobs, hooks, integrations)
-├── api/                   # FastAPI app, routing, request/response models, server entrypoints
-├── config/                # Environment settings, model routing configs, feature flags
-├── core/                  # Core primitives: ID generation, validation, normalization utilities
-├── domains/               # Domain engines: Discovery, Scoring, Mitigation, Summary
-├── exceptions/            # Typed exception classes for predictable, structured errors
-├── llm/                   # LLM clients, schema-enforced prompts, retries, model governance
-├── models/                # Pydantic V2 data models and schemas
-├── observability/         # Logging, timing instrumentation, metadata, audit utilities
-├── pipelines/             # Orchestrator, execution graph, context management, deterministic flow
-├── tests/                 # Unit tests + integration tests for domains and pipeline
-└── utils/                 # Shared utilities (text processing, file I/O, serialization, etc.)
+pre​mortem_ai/
+├── analysis_service/      
+│   # Optional external analysis layer for batch workflows, scheduled jobs,
+│   # or downstream integrations that consume structured pipeline output.
+│
+├── api/
+│   # Public-facing FastAPI interface with request/response models,
+│   # routing, dependency injection, and server entrypoints.
+│   # Keeps transport concerns isolated from internal pipeline logic.
+│
+├── config/
+│   # Centralized configuration: feature flags, environment overrides,
+│   # model routing rules, and pipeline tuning parameters.
+│   # Ensures deterministic behavior across environments.
+│
+├── core/
+│   # Fundamental primitives: ID generation, deterministic hashing,
+│   # schema validation helpers, normalization utilities, and shared constants.
+│   # Everything in this layer must remain side-effect free.
+│
+├── domains/
+│   # Domain engines implementing the four canonical phases:
+│   # Discovery, Scoring, Mitigation, and Summary.
+│   # Each engine is fully self-contained, testable, and schema-driven.
+│
+├── exceptions/
+│   # Typed exception hierarchy enabling predictable failure modes and
+│   # structured error propagation throughout the pipeline.
+│
+├── llm/
+│   # Governed LLM integration layer:
+│   # - schema-enforced prompts
+│   # - retry and timeout policies
+│   # - centralized OpenAI client
+│   # - deterministic routing across model tiers
+│   # No domain logic is permitted in this layer.
+│
+├── models/
+│   # Pydantic V2 models defining strict input/output schemas for all
+│   # pipeline stages and intermediate artifacts. Provides the contract
+│   # that governs every LLM interaction.
+│
+├── observability/
+│   # Structured logging, timing instrumentation, metadata capture,
+│   # and audit utilities. Ensures full traceability of every pipeline run.
+│
+├── pipelines/
+│   # Orchestration layer controlling deterministic execution flow:
+│   # - execution graph (Discovery → Scoring → Mitigation → Summary)
+│   # - context management
+│   # - cross-stage validation boundaries
+│   # - final PipelineResponse assembly
+│   # This is the system’s authoritative control plane.
+│
+├── tests/
+│   # Unit and integration tests covering domain engines, orchestration logic,
+│   # schema compliance, and failure simulations.
+│   # Maintains pipeline reliability across iterations and deployments.
+│
+└── utils/
+    # Shared utilities for text processing, file I/O, serialization,
+    # and helper functions that do not belong to any domain or pipeline layer.
 ```
 
 Each folder corresponds to a specific architectural responsibility:
@@ -278,7 +335,73 @@ Supports environment overrides, model routing rules, feature toggles, logging ve
 
 ---
 
-## 12. Potential Additions
+## 12. Project Goals & Engineering Philosophy
+
+PreMortem AI is engineered as a deterministic, governed risk-analysis system rather than a traditional prompt-chain tool. Its design centers on creating an auditable, reproducible pipeline that organizations can trust inside larger automation environments.
+
+The core engineering goals are:
+
+- **Determinism** — identical inputs should produce structurally identical outputs with no unexplained variation.
+- **Auditability** — every stage must be inspectable, typed, logged, and traceable through structured metadata.
+- **Extensibility** — domain engines, scoring heuristics, and mitigation logic should be replaceable or augmentable without affecting other components.
+- **Governance** — all LLM interactions must pass through a schema-enforced, contract-driven integration layer.
+- **Separation of Concerns** — pipeline orchestration, inference, domain logic, and observability remain fully isolated to ensure maintainability.
+
+This philosophy aligns with how enterprise automation and AI governance systems are built, allowing PreMortem AI to serve as a reliable, production-grade building block within larger decision-making or compliance workflows.
+
+---
+
+## 13. Roadmap
+
+The following roadmap reflects the planned evolution of PreMortem AI as it matures into a broader automation and analysis platform. Items are grouped by expected development horizon but are designed to remain modular and non-breaking.
+
+### Near-Term
+- Additional scoring heuristics and industry-specific weighting profiles  
+- Expanded test coverage across all domain engines and the pipeline orchestrator  
+- Configurable rule sets for different project types (engineering, compliance, product, operational risk)  
+- Improved error classification and recovery paths within the LLM integration layer  
+
+### Mid-Term
+- Interactive web-based dashboard for submitting descriptions and visualizing risk outputs  
+- CI/CD automation for schema validation, deterministic run enforcement, and regression detection  
+- Plugin architecture allowing organizations to register custom discovery, scoring, or mitigation modules  
+- Model benchmarking utilities for evaluating response quality across OpenAI model tiers  
+
+### Long-Term
+- Dataset export and training hooks for domain-specific fine-tuning  
+- Extended domain packs (security, financial exposure, regulatory compliance, operations)  
+- Enterprise observability integrations (OpenTelemetry, Prometheus, SIEM pipelines)  
+- Support for multi-agent evaluation flows and cross-domain consensus scoring  
+
+The roadmap is intentionally flexible so teams can introduce enhancements without disrupting core pipeline guarantees.
+
+---
+
+## 14. Contributing
+
+Contributions are welcome. To preserve the determinism, auditability, and architectural boundaries of the system, contributions should follow these guidelines:
+
+### General Guidelines
+- Open an issue before submitting major changes so architectural implications can be discussed.
+- Keep domain engines self-contained and free of implicit assumptions about other domains.
+- Ensure all changes include appropriate schema updates, tests, and documentation.
+- Maintain strict separation between orchestration logic, domain logic, and LLM governance.
+
+### LLM Integration Requirements
+- All LLM interactions must pass through the governed integration layer.
+- New prompts must define explicit schema expectations and enforce structured output parsing.
+- Avoid adding free-form or unconstrained LLM calls that cannot be validated.
+
+### Pull Requests
+- Pull requests should be atomic and focused on a single concern.
+- Include a clear description of intent, architectural impact, and any new dependencies.
+- Ensure tests pass and linting/formatting standards are met.
+
+This project prioritizes clarity, determinism, and modular engineering. Contributions aligned with these principles are encouraged.
+
+---
+
+## 15. Potential Additions
 
 PreMortem AI is designed with extensibility in mind. Future enhancements may include:
 
@@ -307,7 +430,7 @@ These additions preserve PreMortem AI’s deterministic foundation while expandi
 
 ---
 
-## 13. License
+## 16. License
 
 MIT License — see `LICENSE`.
 
