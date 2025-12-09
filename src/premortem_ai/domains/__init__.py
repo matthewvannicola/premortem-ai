@@ -1,24 +1,19 @@
 """
-Domain modules for the PreMortem AI pipeline.
-
-Each subpackage corresponds to a distinct analytical phase of the pipeline:
-    - discovery: Extract and structure raw risks from project descriptions
-    - scoring: Compute severity scores using deterministic + LLM-assisted logic
-    - themes: Cluster risks into emergent themes
-    - mitigation: Generate actionable mitigation strategies
-    - summary: Produce executive-ready narrative summaries
-    - reporting: Assemble artifacts into final output documents
-
-Design Principles:
-    - Each domain owns a single, well-defined responsibility.
-    - Cross-domain dependencies flow only forward (no circular imports).
-    - Domain modules should expose a single entrypoint function per step
-      (e.g., `run_discovery`, `run_scoring`, etc.).
-    - All business logic stays within its domain folder; pipeline modules
-      orchestrate execution but do not implement domain-specific behavior.
-
-External modules should import domain entrypoints explicitly from their
-respective subpackages, not from this package root.
+Domain-level exports for the PreMortem AI pipeline.
 """
 
-__all__ = []
+from premortem_ai.domains.discovery.discovery_engine import run_discovery_stage
+from premortem_ai.domains.scoring.scoring_engine import run_scoring_stage
+from premortem_ai.domains.mitigation.mitigation_generator import run_mitigation_stage
+from premortem_ai.domains.themes.theme_clusterer import run_theme_stage
+
+# Summary lives outside domains, so expose it here
+from premortem_ai.summary.summary_generator import run_summary_stage
+
+__all__ = [
+    "run_discovery_stage",
+    "run_scoring_stage",
+    "run_mitigation_stage",
+    "run_theme_stage",
+    "run_summary_stage",
+]
