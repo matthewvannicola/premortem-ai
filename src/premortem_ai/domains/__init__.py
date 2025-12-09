@@ -8,7 +8,7 @@ from premortem_ai.domains.mitigation.mitigation_generator import run_mitigation_
 from premortem_ai.domains.themes.theme_clusterer import run_theme_stage
 
 # Summary lives outside domains, so expose it here
-from premortem_ai.summary.summary_generator import run_summary_stage
+from premortem_ai.domains.summary.summary_generator import run_summary_stage
 
 __all__ = [
     "run_discovery_stage",
