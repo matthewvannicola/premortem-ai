@@ -11,7 +11,7 @@ object through each stage, ensuring:
 """
 
 from typing import Dict, Any, List, Optional
-from premortem_ai.core.timer import Timer
+from premortem_ai.core.utils.timer import Timer
 
 
 class PipelineContext:
