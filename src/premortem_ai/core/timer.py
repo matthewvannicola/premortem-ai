@@ -29,28 +29,25 @@ class Timer:
     """
     Simple timer object for measuring execution duration.
 
-    Usage:
-        t = Timer()
-        t.start()
-        ... work ...
-        duration = t.stop()  # returns ms
-
-    Also supports:
-        with Timer() as t:
-            ... work ...
-        print(t.duration_ms)
+    Now supports:
+        start(stage_name)
+        stop()
     """
 
     def __init__(self):
         self._start = None
         self._end = None
         self.duration_ms = None
+        self.stage_name = None
 
-    def start(self):
+    def start(self, stage_name=None):
+        """Start timing a stage."""
+        self.stage_name = stage_name
         self._start = now_ms()
         return self
 
     def stop(self) -> int:
+        """Stop timing and return duration in ms."""
         self._end = now_ms()
         self.duration_ms = self._end - self._start
         return self.duration_ms
@@ -65,15 +62,6 @@ class Timer:
 
 @contextmanager
 def timing() -> int:
-    """
-    Simple context manager for timing blocks of code.
-
-    Example:
-        with timing() as t:
-            run_pipeline()
-
-        print(t["ms"])
-    """
     start = now_ms()
     container = {"ms": None}
     yield container
