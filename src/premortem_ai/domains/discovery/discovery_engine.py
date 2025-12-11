@@ -80,17 +80,20 @@ def run_discovery(project_description: str, model_override: str = None) -> Dict[
 
 def run_discovery_stage(*, context, request):
     """
-    Stage wrapper used by the orchestrator.
+    Pipeline stage entrypoint. Called by orchestrator as:
 
-    The orchestrator always calls:
         handler(context=context, request=request)
 
-    So we accept context and request as keyword-only arguments.
+    Accepts context + request, extracts description, runs discovery,
+    and writes results into context.
     """
     description = request.project_description
     model_override = request.model_version_override
 
-    risks = run_discovery(project_description=description, model_override=model_override)
+    risks = run_discovery(
+        project_description=description,
+        model_override=model_override
+    )
 
-    # Write results into pipeline context
+    # Write discovery output into pipeline context
     context.risks = risks
