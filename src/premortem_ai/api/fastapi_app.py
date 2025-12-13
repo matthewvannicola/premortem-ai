@@ -1,5 +1,8 @@
 """
-FastAPI application exposing the PreMortem AI pipeline.
+fastapi_app.py
+
+FastAPI application exposing the PreMortem AI system.
+Acts as the HTTP boundary only.
 """
 
 from fastapi import FastAPI, HTTPException
@@ -17,6 +20,13 @@ from premortem_ai.exceptions import (
 )
 from premortem_ai.core.logger import info, error
 
+# NEW: intake router
+from premortem_ai.api.intake import router as intake_router
+
+
+# ---------------------------------------------------------
+# APP INITIALIZATION
+# ---------------------------------------------------------
 
 app = FastAPI(
     title="PreMortem AI",
@@ -26,16 +36,23 @@ app = FastAPI(
 
 
 # ---------------------------------------------------------
-# CORS CONFIG
+# CORS CONFIG (UI COMPATIBILITY)
 # ---------------------------------------------------------
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Update later for security
+    allow_origins=["*"],  # OK for now, lock down later
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ---------------------------------------------------------
+# ROUTER REGISTRATION
+# ---------------------------------------------------------
+
+app.include_router(intake_router)
 
 
 # ---------------------------------------------------------
@@ -69,13 +86,8 @@ def run_pipeline_endpoint(request: PipelineRequest):
     info("Received pipeline request")
 
     try:
-        # The pipeline returns a PipelineContext
         context = run_pipeline(request)
-
-        # Convert context → PipelineResponse (FINAL FIX)
-        response = PipelineResponse.from_context(context)
-
-        return response
+        return PipelineResponse.from_context(context)
 
     except ValidationError as exc:
         error(f"Validation error: {exc}")
