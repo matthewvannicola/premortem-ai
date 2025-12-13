@@ -20,7 +20,7 @@ from typing import Any, Dict, Optional
 
 from openai import OpenAI, APIError, APIConnectionError, RateLimitError, Timeout
 from premortem_ai.config import settings
-from premortem_ai.exceptions import ModelInvocationError, DependencyError
+from premortem_ai.exceptions import ModelInvocationError, ConfigurationError
 from premortem_ai.observability.metrics import llm_latency, llm_requests_total
 from premortem_ai.observability.tracing import traced_operation
 
