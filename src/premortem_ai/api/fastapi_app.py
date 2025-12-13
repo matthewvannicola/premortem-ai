@@ -21,7 +21,7 @@ from premortem_ai.exceptions import (
 from premortem_ai.core.logger import info, error
 
 # NEW: intake router
-from premortem_ai.api.intake import router as intake_router
+from premortem_ai.api.routes.intake import router as intake_router
 
 
 # ---------------------------------------------------------
