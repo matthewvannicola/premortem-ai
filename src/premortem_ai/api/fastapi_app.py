@@ -77,7 +77,7 @@ def root():
 # PIPELINE EXECUTION ENDPOINT
 # ---------------------------------------------------------
 
-@app.post("/pipeline/run", response_model=PipelineResponse, tags=["analysis"])
+@app.post("/pipeline/run", tags=["analysis"])
 def run_pipeline_endpoint(request: PipelineRequest):
     """
     Execute the full PreMortem AI pipeline.
@@ -87,7 +87,18 @@ def run_pipeline_endpoint(request: PipelineRequest):
 
     try:
         context = run_pipeline(request)
-        return PipelineResponse.from_context(context)
+        response = PipelineResponse.from_context(context)
+
+        renderer = get_renderer(request.output_format)
+        rendered = renderer.render(response)
+
+        if request.output_format == OutputFormat.MARKDOWN:
+            return PlainTextResponse(
+                content=rendered,
+                media_type="text/markdown",
+            )
+
+        return JSONResponse(content=rendered)
 
     except ValidationError as exc:
         error(f"Validation error: {exc}")
