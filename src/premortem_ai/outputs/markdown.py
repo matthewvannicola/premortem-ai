@@ -19,7 +19,7 @@ from premortem_ai.output.base import BaseRenderer, OutputFormat
 
 class MarkdownRenderer(BaseRenderer):
     """
-    Renders a PipelineResponse into a Deloitte-style Markdown report.
+    Renders a PipelineResponse into a Enterprise-grade Markdown report.
     """
 
     format = OutputFormat.MARKDOWN
@@ -128,7 +128,7 @@ Report Date: {report_date}
 
     def render(self, response: PipelineResponse) -> str:
         """
-        Render the PipelineResponse into Deloitte-style Markdown.
+        Render the PipelineResponse into Enterprise-grade Markdown.
         """
 
         risk_register_md = self._render_risk_register(response)
