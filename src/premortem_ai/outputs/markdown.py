@@ -1,7 +1,7 @@
 """
 output/markdown.py
 
-Deloitte-style Markdown renderer for PreMortem AI reports.
+Enterprise-grade Markdown renderer for PreMortem AI reports.
 
 This renderer:
 - Applies a fixed, governed report structure
