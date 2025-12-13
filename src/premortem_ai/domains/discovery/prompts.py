@@ -19,10 +19,10 @@ quality issues, cost overruns, operational failures, or unmet objectives.
 
 Return ONLY a JSON list of objects in the following shape:
 [
-  {
+  {{
     "title": "short risk title",
     "description": "1-2 sentence explanation of the risk"
-  }
+  }}
 ]
 
 Requirements:
@@ -36,3 +36,4 @@ Requirements:
 Project Description:
 \"\"\"{description}\"\"\"
 """.strip()
+
