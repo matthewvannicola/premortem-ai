@@ -131,7 +131,7 @@ class LLMClient:
                     backoff *= 2
                     continue
                 llm_requests_total.labels(model=model_name, status="network_error").inc()
-                raise DependencyError(f"LLM network failure: {exc}") from exc
+                raise ModelInvocationError(f"LLM network failure: {exc}") from exc
 
             except APIError as exc:
                 if exc.status and 500 <= exc.status < 600 and attempt < self.max_retries:
