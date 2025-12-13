@@ -3,11 +3,15 @@
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
 PreMortem AI is an automated, deterministic pre-mortem engine that identifies failure scenarios
-before a project begins. It converts free-form project descriptions into a structured, end-to-end
-risk package—complete with discovery, scoring, mitigation strategies, themes, and an executive summary.
+*before* a project begins. 
 
-The system is designed for engineering teams, product organizations, and enterprise environments
-that need consistent, auditable, machine-readable risk intelligence.
+It transforms free-form project descriptions into a structured, end-to-end risk intelligence package — 
+including discovery, scoring, mitigation strategies, thematic analysis, and an executive-ready summary.
+
+Designed and built as a production-grade GenAI system, PreMortem AI emphesizes auditability, 
+deterministic outputs, and governed reasoning to enable consistent and repeatable decision-making,
+making it suitable for engineering teams, product organizations, and enterprise environments where reliability and 
+traceability are a non-negotiable.
 
 ---
 
