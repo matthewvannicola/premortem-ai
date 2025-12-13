@@ -1,7 +1,9 @@
 """
-exceptions package export surface.
+premortem_ai.exceptions
 
-Centralizes import access for all exception types so callers can do:
+Public exception surface for the PreMortem AI system.
+
+Centralizes import access so callers can write:
     from premortem_ai.exceptions import ValidationError, ConfigurationError
 """
 
@@ -12,7 +14,10 @@ from .validation import (
     CrossReferenceError,
     DataConsistencyError,
 )
-from .pipeline import PipelineExecutionError
+from .pipeline import (
+    PipelineExecutionError,
+    CrossReferenceError as PipelineCrossReferenceError,
+)
 from .model import ModelInvocationError
 from .config import ConfigurationError
 
@@ -23,6 +28,7 @@ __all__ = [
     "CrossReferenceError",
     "DataConsistencyError",
     "PipelineExecutionError",
+    "PipelineCrossReferenceError",
     "ModelInvocationError",
     "ConfigurationError",
 ]
