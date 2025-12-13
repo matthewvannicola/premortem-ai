@@ -19,40 +19,51 @@ from typing import List, Optional
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 
 from premortem_ai.intake import intake_submission
+from premortem_ai.core.logger import info, error
 
 router = APIRouter(prefix="/intake", tags=["intake"])
 
 
 @router.post("")
 async def submit_intake(
-    files: List[UploadFile] = File(default=[]),
+    files: Optional[List[UploadFile]] = File(default=None),
     typed_description: Optional[str] = Form(default=None),
 ):
     """
     Submit a PreMortem intake request.
     """
 
+    info("Received intake submission")
+
     try:
         with TemporaryDirectory() as tmpdir:
             tmp_path = Path(tmpdir)
             file_paths: List[Path] = []
 
-            for upload in files:
-                dest = tmp_path / upload.filename
-                contents = await upload.read()
-                dest.write_bytes(contents)
-                file_paths.append(dest)
+            if files:
+                for upload in files:
+                    dest = tmp_path / upload.filename
+                    contents = await upload.read()
+                    dest.write_bytes(contents)
+                    file_paths.append(dest)
 
             result = intake_submission(
-                file_paths=file_paths,
+                file_paths=file_paths if file_paths else None,
                 typed_description=typed_description,
                 user_id="anonymous",  # auth comes later
             )
 
             return result
 
+    except ValueError as exc:
+        # deterministic intake validation errors
+        error(f"Intake validation failed: {exc}")
+        raise HTTPException(status_code=400, detail=str(exc))
+
     except Exception as exc:
+        # unexpected server-side failure
+        error(f"Unhandled intake error: {exc}")
         raise HTTPException(
-            status_code=400,
-            detail=f"Intake submission failed: {exc}",
+            status_code=500,
+            detail="Internal intake error",
         ) from exc
