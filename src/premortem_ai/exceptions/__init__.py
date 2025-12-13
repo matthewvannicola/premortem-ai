@@ -14,10 +14,7 @@ from .validation import (
     CrossReferenceError,
     DataConsistencyError,
 )
-from .pipeline import (
-    PipelineExecutionError,
-    CrossReferenceError as PipelineCrossReferenceError,
-)
+from .pipeline import PipelineExecutionError
 from .model import ModelInvocationError
 from .config import ConfigurationError
 
@@ -28,7 +25,6 @@ __all__ = [
     "CrossReferenceError",
     "DataConsistencyError",
     "PipelineExecutionError",
-    "PipelineCrossReferenceError",
     "ModelInvocationError",
     "ConfigurationError",
 ]
