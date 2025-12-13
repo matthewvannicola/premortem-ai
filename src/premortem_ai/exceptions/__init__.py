@@ -5,32 +5,24 @@ Centralizes import access for all exception types so callers can do:
     from premortem_ai.exceptions import ValidationError, ConfigurationError
 """
 
-from .base import PreMortemError
-from .errors import (
-    ConfigurationError,
-    DependencyError,
-    ModelInvocationError,
-    PipelineExecutionError,
-    ServiceError,
-    RetryableError,
-)
-from .validation_errors import (
+from .base import PremortemException
+from .validation import (
     ValidationError,
     SchemaValidationError,
     CrossReferenceError,
     DataConsistencyError,
 )
+from .pipeline import PipelineExecutionError
+from .model import ModelInvocationError
+from .config import ConfigurationError
 
 __all__ = [
-    "PreMortemError",
-    "ConfigurationError",
-    "DependencyError",
-    "ModelInvocationError",
-    "PipelineExecutionError",
-    "ServiceError",
-    "RetryableError",
+    "PremortemException",
     "ValidationError",
     "SchemaValidationError",
     "CrossReferenceError",
     "DataConsistencyError",
+    "PipelineExecutionError",
+    "ModelInvocationError",
+    "ConfigurationError",
 ]
