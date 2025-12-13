@@ -34,10 +34,19 @@ class Settings:
     All environment-driven values flow through this class.
     """
 
+    # -------------------------
     # API Keys
+    # -------------------------
     OPENAI_API_KEY: str
 
-    # Environment metadata
+    # -------------------------
+    # Model Defaults
+    # -------------------------
+    MODEL_VERSION: str = os.getenv("MODEL_VERSION", "gpt-5.2")
+
+    # -------------------------
+    # Environment Metadata
+    # -------------------------
     ENVIRONMENT: str = os.getenv("PREMORTEM_ENV", "local")
     LOG_LEVEL: str = os.getenv("PREMORTEM_LOG_LEVEL", "INFO")
 
