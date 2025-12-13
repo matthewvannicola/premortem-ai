@@ -19,7 +19,7 @@ from premortem_ai.output.base import BaseRenderer, OutputFormat
 
 class MarkdownRenderer(BaseRenderer):
     """
-    Renders a PipelineResponse into a Enterprise-grade Markdown report.
+    Renders a PipelineResponse into an enterprise-grade Markdown report.
     """
 
     format = OutputFormat.MARKDOWN
@@ -128,7 +128,7 @@ Report Date: {report_date}
 
     def render(self, response: PipelineResponse) -> str:
         """
-        Render the PipelineResponse into Enterprise-grade Markdown.
+        Render the PipelineResponse into enterprise-grade Markdown.
         """
 
         risk_register_md = self._render_risk_register(response)
@@ -213,26 +213,22 @@ Report Date: {report_date}
         Render a single risk entry.
         """
 
-        mitigations = "\n".join(
-            f"- {m.description}" for m in risk.mitigations
+        mitigations = (
+            "\n".join(f"- {m.description}" for m in risk.mitigations)
+            if risk.mitigations
+            else "- No mitigations identified at this time."
         )
 
-        return f"""
-#### {rank}. {risk.title}
-
-**Description**  
-{risk.description}
-
-**Risk Scoring**  
-- Inherent Risk: {risk.inherent_risk}  
-- Likelihood: {risk.likelihood}  
-- Impact: {risk.impact}  
-- Residual Risk: {risk.residual_risk}
-
-**Mitigation Controls**
-{mitigations}
-
-**Residual Risk Commentary**  
-{risk.residual_commentary}
-"""
-
+        return (
+            f"#### {rank}. {risk.title}\n\n"
+            f"**Description**  \n{risk.description}\n\n"
+            f"**Risk Scoring**  \n"
+            f"- Inherent Risk: {risk.inherent_risk}  \n"
+            f"- Likelihood: {risk.likelihood}  \n"
+            f"- Impact: {risk.impact}  \n"
+            f"- Residual Risk: {risk.residual_risk}\n\n"
+            f"**Mitigation Controls**\n"
+            f"{mitigations}\n\n"
+            f"**Residual Risk Commentary**  \n"
+            f"{risk.residual_commentary}\n"
+        )
