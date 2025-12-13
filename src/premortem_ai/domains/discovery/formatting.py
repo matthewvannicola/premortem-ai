@@ -48,20 +48,18 @@ def format_risk_description(text: str) -> str:
 def apply_risk_formatting(risks: List[Dict]) -> List[Dict]:
     """
     Apply formatting rules to a list of risk items.
-
-    Args:
-        risks (list[dict]): Raw or partially cleaned risk objects.
-
-    Returns:
-        list[dict]: Formatted risk objects.
+    Drops trivial or empty items deterministically.
     """
 
     formatted = []
 
     for item in risks:
-
         title = format_risk_title(item.get("title", ""))
         description = format_risk_description(item.get("description", ""))
+
+        # Drop empty or trivial items
+        if len(title) < 5 or len(description) < 15:
+            continue
 
         formatted.append(
             {
