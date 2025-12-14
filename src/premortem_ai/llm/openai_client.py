@@ -1,100 +1,110 @@
 """
-discovery_engine.py
+openai_client.py
 
-Enterprise-grade risk discovery engine for the PreMortem AI pipeline.
-Uses governed LLMClient + strict validation to extract structured risks.
+Governed OpenAI client wrapper for PreMortem AI.
+
+Responsibilities:
+- Encapsulate all OpenAI SDK interactions
+- Enforce a stable calling contract for pipelines
+- Perform minimal, safe parsing of model output
+- Surface clear, domain-agnostic errors
+
+This module MUST NOT:
+- Contain business logic
+- Know about domains (discovery, scoring, etc.)
+- Perform schema validation beyond basic JSON decoding
 """
 
-from typing import Dict, List
+import json
+from typing import Any, Optional
 
-from premortem_ai.llm.client import get_llm_client
-from premortem_ai.llm.model_registry import resolve_model_version
-from premortem_ai.domains.discovery.prompts import DISCOVERY_PROMPT
-from premortem_ai.domains.discovery.formatting import apply_risk_formatting
-from premortem_ai.models import RiskItem
-from premortem_ai.core.id_generation import generate_risk_id
-from premortem_ai.exceptions import ModelInvocationError, ValidationError
+from openai import OpenAI
+
+from premortem_ai.config import settings
+from premortem_ai.exceptions import ModelInvocationError
 from premortem_ai.utils.logger import info, error
 
 
-# ---------------------------------------------------------
-# INTERNAL HELPERS
-# ---------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Singleton OpenAI client
+# ---------------------------------------------------------------------------
 
-def _validate_item(item: dict) -> None:
-    """Ensure required fields exist."""
-    if not isinstance(item, dict):
-        raise ValidationError(f"Risk item must be an object, got: {type(item)}")
-
-    if "title" not in item or "description" not in item:
-        raise ValidationError(f"Risk item missing required fields: {item}")
+_client: Optional[OpenAI] = None
 
 
-def _convert_to_models(risks: List[dict]) -> Dict[str, RiskItem]:
-    """Convert cleaned risks into RiskItem models with generated IDs."""
-    results: Dict[str, RiskItem] = {}
-
-    for raw in risks:
-        rid = generate_risk_id()
-        results[rid] = RiskItem(
-            risk_id=rid,
-            title=raw["title"],
-            description=raw["description"],
-        )
-
-    return results
+def _get_openai_client() -> OpenAI:
+    global _client
+    if _client is None:
+        _client = OpenAI(api_key=settings.OPENAI_API_KEY)
+    return _client
 
 
-# ---------------------------------------------------------
-# CORE DISCOVERY FUNCTION
-# ---------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Public factory
+# ---------------------------------------------------------------------------
 
-def run_discovery(
-    project_description: str,
-    model_override: str = None
-) -> Dict[str, RiskItem]:
+def get_llm_client() -> "LLMClient":
     """
-    Run the LLM-powered risk discovery step.
-    Returns mapping of risk_id -> RiskItem.
+    Factory method used by all pipelines and domain services.
+
+    Returns:
+        LLMClient instance with governed execution methods
     """
-    llm = get_llm_client()
-    model = resolve_model_version(model_override)
-
-    prompt = DISCOVERY_PROMPT.format(description=project_description)
-
-    try:
-        # 🔑 THIS IS THE CORRECT CALL
-        raw_output = llm.run(
-            prompt=prompt,
-            model_override=model
-        )
-    except Exception as exc:
-        error(f"LLM discovery failed: {exc}")
-        raise ModelInvocationError(f"Risk discovery LLM failure: {exc}") from exc
-
-    if not isinstance(raw_output, list):
-        raise ValidationError("Discovery LLM output must be a JSON list.")
-
-    for item in raw_output:
-        _validate_item(item)
-
-    cleaned = apply_risk_formatting(raw_output)
-
-    info(f"Discovered {len(cleaned)} risks.")
-    return _convert_to_models(cleaned)
+    return LLMClient()
 
 
-# ---------------------------------------------------------
-# PIPELINE ENTRYPOINT
-# ---------------------------------------------------------
+# ---------------------------------------------------------------------------
+# LLM Client Abstraction
+# ---------------------------------------------------------------------------
 
-def run_discovery_stage(*, context, request) -> None:
+class LLMClient:
     """
-    Pipeline stage entrypoint.
-    """
-    risks = run_discovery(
-        project_description=request.project_description,
-        model_override=request.model_version_override
-    )
+    Stable LLM execution interface for PreMortem AI.
 
-    context.risks = risks
+    This class intentionally exposes a SMALL surface area.
+    Pipelines should never talk to OpenAI directly.
+    """
+
+    def run(self, *, prompt: str, model_override: str) -> Any:
+        """
+        Execute a prompt against the OpenAI API and return parsed JSON output.
+
+        Args:
+            prompt: Fully-rendered prompt string
+            model_override: Fully-resolved model name (already governed)
+
+        Returns:
+            Parsed JSON output (list or dict)
+
+        Raises:
+            ModelInvocationError: On API failure or invalid JSON
+        """
+
+        info(f"Invoking LLM with model='{model_override}'")
+
+        try:
+            client = _get_openai_client()
+
+            response = client.responses.create(
+                model=model_override,
+                input=prompt,
+            )
+
+            raw_text = response.output_text
+
+        except Exception as exc:
+            error(f"OpenAI invocation failed: {exc}")
+            raise ModelInvocationError(
+                f"OpenAI invocation failed: {exc}"
+            ) from exc
+
+        # ---------------- JSON Parsing Boundary ----------------
+
+        try:
+            return json.loads(raw_text)
+        except json.JSONDecodeError as exc:
+            error("LLM returned non-JSON output")
+            error(f"Raw LLM output:\n{raw_text}")
+            raise ModelInvocationError(
+                "LLM output was not valid JSON"
+            ) from exc
