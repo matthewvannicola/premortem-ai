@@ -7,7 +7,8 @@ Uses governed LLMClient + strict validation to extract structured risks.
 
 from typing import Dict, List
 
-from premortem_ai.llm import get_llm_client, resolve_model_version
+from premortem_ai.llm.client import get_llm_client
+from premortem_ai.llm.model_registry import resolve_model_version
 from premortem_ai.domains.discovery.prompts import DISCOVERY_PROMPT
 from premortem_ai.domains.discovery.formatting import apply_risk_formatting
 from premortem_ai.models import RiskItem
