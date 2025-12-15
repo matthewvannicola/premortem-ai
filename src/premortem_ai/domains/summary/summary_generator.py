@@ -89,26 +89,22 @@ def parse_summary_output(
 
 
 # ----------------------------------------------------------------------
-# BACKWARDS COMPATIBILITY — STAGE WRAPPER
+# PIPELINE ENTRYPOINT — REQUIRED SIGNATURE
 # ----------------------------------------------------------------------
 
-def run_summary_stage(
-    risks: Dict[str, Any],
-    scores: Dict[str, Any],
-    themes: Dict[str, Any],
-    mitigations: Dict[str, Any],
-    model_override: str | None = None,
-):
+def run_summary_stage(*, context, request) -> None:
     """
-    Backwards-compatible wrapper calling the actual summary builder.
-    Imported lazily to avoid circular import.
+    Pipeline stage entrypoint.
+
+    Called by orchestrator as:
+        handler(context=context, request=request)
     """
     from premortem_ai.domains.summary.summary_builder import generate_summary
 
-    return generate_summary(
-        risks=risks,
-        scores=scores,
-        themes=themes,
-        mitigations=mitigations,
-        model_override=model_override,
+    context.summary = generate_summary(
+        risks=context.risks,
+        scores=context.scores,
+        themes=context.themes,
+        mitigations=context.mitigations,
+        model_override=request.model_version_override,
     )
