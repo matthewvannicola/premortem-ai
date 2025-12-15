@@ -29,18 +29,13 @@ from premortem_ai.observability.metrics import model_routing_total
 def load_allowed_models() -> List[str]:
     """
     Load the allowed model registry.
-
-    Priority:
-        1. settings.ALLOWED_MODELS (if exposed for enterprise governance)
-        2. Hard-coded safe defaults
-
-    This architecture lets companies enforce governed model policies in production.
     """
     if hasattr(settings, "ALLOWED_MODELS") and settings.ALLOWED_MODELS:
         return settings.ALLOWED_MODELS
 
     # Safe defaults (compile-time)
     return [
+        "gpt-5.2",                
         "gpt-5.1",
         "gpt-5.1-reasoning",
         "gpt-4.1",
