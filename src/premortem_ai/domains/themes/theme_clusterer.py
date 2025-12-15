@@ -91,22 +91,26 @@ def generate_themes(risks: Dict[str, RiskItem], model_override: str = None) -> D
 
 
 # --------------------------------------------------------
-# BACKWARDS COMPATIBILITY WRAPPER
+# PIPELINE STAGE ENTRYPOINT
 # --------------------------------------------------------
 
 def run_theme_stage(*, context, request) -> None:
     """
     Pipeline stage entrypoint for theme clustering.
 
-    Reads scored risks from the pipeline context,
+    Orchestrator contract:
+        handler(context=context, request=request)
+
+    Reads discovered risks from PipelineContext,
     clusters them into themes, and writes results
     back into the context.
     """
-    if not hasattr(context, "scores") or not context.scores:
-        raise ValueError("No scored risks available for theme clustering stage.")
+    if not getattr(context, "risks", None):
+        raise ValueError("No risks available for theme clustering stage.")
 
-    themes = run_theme_clustering(
-        scores=context.scores,
+    themes = generate_themes(
+        risks=context.risks,
+        model_override=getattr(request, "model_version_override", None),
     )
 
     context.themes = themes
