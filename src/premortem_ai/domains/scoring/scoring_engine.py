@@ -20,8 +20,14 @@ from premortem_ai.config import PIPELINE_CONFIG
 # ------------------------------------------------------------
 
 def _validate_llm_output(data: dict, risk_id: str):
-    """Ensure required integer fields exist and are in range."""
-    for field in ("likelihood", "impact", "severity"):
+    """
+    Ensure required LLM-provided scoring signals exist and are valid.
+
+    NOTE:
+    - Severity is intentionally NOT validated here.
+    - Severity is a derived metric computed deterministically by the system.
+    """
+    for field in ("likelihood", "impact"):
         if field not in data:
             raise ValidationError(
                 f"Missing '{field}' in scoring output for risk {risk_id}"
