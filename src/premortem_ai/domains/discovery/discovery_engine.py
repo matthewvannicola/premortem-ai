@@ -2,13 +2,13 @@
 discovery_engine.py
 
 Enterprise-grade risk discovery engine for the PreMortem AI pipeline.
-Uses governed LLMClient + strict JSON parsing to extract structured risks.
+Uses governed LLMClient + strict validation to extract structured risks.
 """
 
-import json
-from typing import Dict
+from typing import Dict, List
 
-from premortem_ai.llm import get_llm_client, resolve_model_version
+from premortem_ai.llm.client import get_llm_client
+from premortem_ai.llm.model_registry import resolve_model_version
 from premortem_ai.domains.discovery.prompts import DISCOVERY_PROMPT
 from premortem_ai.domains.discovery.formatting import apply_risk_formatting
 from premortem_ai.models import RiskItem
@@ -30,7 +30,7 @@ def _validate_item(item: dict) -> None:
         raise ValidationError(f"Risk item missing required fields: {item}")
 
 
-def _convert_to_models(risks: list) -> Dict[str, RiskItem]:
+def _convert_to_models(risks: List[dict]) -> Dict[str, RiskItem]:
     """Convert cleaned risks into RiskItem models with generated IDs."""
     results: Dict[str, RiskItem] = {}
 
@@ -65,9 +65,9 @@ def run_discovery(
     prompt = DISCOVERY_PROMPT.format(description=project_description)
 
     try:
-        raw_text = llm.generate(
+        raw_output = llm.run(
             prompt=prompt,
-            model=model
+            model_override=model
         )
     except Exception as exc:
         error(f"LLM discovery failed during invocation: {exc}")
@@ -75,25 +75,14 @@ def run_discovery(
             f"Risk discovery LLM failure: {exc}"
         ) from exc
 
-    try:
-        raw_output = json.loads(raw_text)
-    except json.JSONDecodeError as exc:
-        error("Discovery JSON parsing failed.")
-        error(f"Raw LLM output:\n{raw_text}")
-        raise ValidationError(
-            "Discovery LLM output was not valid JSON."
-        ) from exc
-
     if not isinstance(raw_output, list):
         raise ValidationError(
-            "Discovery LLM output must be a JSON list of risk objects."
+            "Discovery LLM output must be a list of risk objects."
         )
 
-    # Validate raw output items
     for item in raw_output:
         _validate_item(item)
 
-    # Apply formatting / normalization rules
     cleaned = apply_risk_formatting(raw_output)
 
     info(f"Discovered {len(cleaned)} risks.")
@@ -107,20 +96,14 @@ def run_discovery(
 def run_discovery_stage(*, context, request) -> None:
     """
     Pipeline stage entrypoint.
-
-    Called by orchestrator as:
-        handler(context=context, request=request)
-
-    Extracts project description, runs discovery,
-    and writes results into the pipeline context.
     """
-    description = request.project_description
-    model_override = request.model_version_override
-
     risks = run_discovery(
-        project_description=description,
-        model_override=model_override
+        project_description=request.project_description,
+        model_override=request.model_version_override
     )
+
+    context.risks = risks
+
 
     # Write discovery output into pipeline context
     context.risks = risks
