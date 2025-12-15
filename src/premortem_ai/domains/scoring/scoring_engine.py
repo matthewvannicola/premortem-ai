@@ -99,14 +99,23 @@ def run_scoring(risks: Dict[str, RiskItem], model_override: str = None) -> Dict[
 
 
 # ------------------------------------------------------------
-# BACKWARDS COMPATIBILITY WRAPPER
+# PIPELINE ENTRYPOINT
 # ------------------------------------------------------------
 
-def run_scoring_stage(risks: Dict[str, RiskItem], model_override: str | None = None):
+def run_scoring_stage(*, context, request) -> None:
     """
-    Compatibility wrapper for older pipeline code.
+    Pipeline stage entrypoint for scoring.
 
-    Historically the pipeline imported `run_scoring_stage()`.
-    This adapter preserves that import path while using the new `run_scoring()`.
+    Reads discovered risks from the pipeline context,
+    runs LLM-powered scoring, and writes results back
+    into the context.
     """
-    return run_scoring(risks=risks, model_override=model_override)
+    if not context.risks:
+        raise ValidationError("No risks available for scoring stage.")
+
+    scored = run_scoring(
+        risks=context.risks,
+        model_override=request.model_version_override,
+    )
+
+    context.scores = scored
