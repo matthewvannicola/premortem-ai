@@ -66,18 +66,22 @@ class ScoreItem(CanonicalModel):
         max_length=5000,
     )
 
+    
     # ----------------------------------------------------------------------
     # Normalization
     # ----------------------------------------------------------------------
+    
     @field_validator("rationale", mode="before")
     def _normalize_rationale(cls, value):
         if isinstance(value, str):
             return normalize_text(value)
         return value
 
+    
     # ----------------------------------------------------------------------
     # Severity validation
     # ----------------------------------------------------------------------
+    
     @field_validator("severity")
     def _validate_severity(cls, severity_value, info):
         """
@@ -95,9 +99,11 @@ class ScoreItem(CanonicalModel):
                 )
         return severity_value
 
+    
     # ----------------------------------------------------------------------
     # Defensive risk_id validation
     # ----------------------------------------------------------------------
+    
     @field_validator("risk_id")
     def _validate_risk_id_format(cls, v):
         """
@@ -108,9 +114,11 @@ class ScoreItem(CanonicalModel):
             raise ValueError("risk_id must be a valid RiskItem identifier.")
         return v.strip()
 
+    
     # ----------------------------------------------------------------------
     # Constructors
     # ----------------------------------------------------------------------
+    
     @classmethod
     def from_llm(cls, raw: dict):
         """
@@ -126,9 +134,11 @@ class ScoreItem(CanonicalModel):
 
         return cls(**raw)
 
+    
     # ----------------------------------------------------------------------
     # Serialization
     # ----------------------------------------------------------------------
+    
     def to_dict(self):
         """Return deterministic JSON-serializable dict."""
         return self.model_dump()
