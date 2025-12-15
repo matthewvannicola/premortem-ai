@@ -106,14 +106,20 @@ def generate_mitigations(
 # BACKWARDS COMPATIBILITY WRAPPER
 # --------------------------------------------------------
 
-def run_mitigation_stage(
-    risks: Dict[str, RiskItem], model_override: str | None = None
-) -> Dict[str, List[MitigationItem]]:
+def run_mitigation_stage(*, context, request) -> None:
     """
-    Legacy wrapper for older pipeline imports.
+    Pipeline stage entrypoint for mitigation generation.
 
-    Historically the pipeline imported run_mitigation_stage().
-    Internally, mitigation logic is implemented via generate_mitigations().
-    This keeps the pipeline stable without modifying callers.
+    Reads scored risks from the pipeline context,
+    generates mitigation strategies, and writes
+    results back into the context.
     """
-    return generate_mitigations(risks=risks, model_override=model_override)
+    if not hasattr(context, "scores") or not context.scores:
+        raise ValueError("No scored risks available for mitigation stage.")
+
+    mitigations = run_mitigation_generation(
+        scores=context.scores,
+        model_override=request.model_version_override,
+    )
+
+    context.mitigations = mitigations
