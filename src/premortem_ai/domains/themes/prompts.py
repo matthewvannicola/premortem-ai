@@ -14,10 +14,10 @@ Cluster these risks into meaningful themes. For each theme, provide:
 Return ONLY valid JSON in this format:
 
 [
-  {
+  {{
     "theme_name": "...",
     "rationale": "...",
     "risk_ids": ["risk-001", "risk-002"]
-  }
+  }}
 ]
 """
