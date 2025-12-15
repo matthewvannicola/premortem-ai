@@ -2,24 +2,28 @@
 severity_rules.py
 
 Applies business rules to adjust severity values.
+
+IMPORTANT:
+- Severity is a deterministic metric derived as likelihood × impact.
+- LLM-provided severity is advisory only and is NOT persisted.
+- This function exists for future extensibility, not arithmetic blending.
 """
 
-def apply_severity_rules(base_severity: int, model_output_severity: int) -> int:
-    """
-    Blend deterministic severity with the LLM's suggested severity.
+from typing import Optional
 
-    Current rule:
-        - If they differ, average them.
-        - Ensures consistency and prevents outlier LLM values.
+
+def apply_severity_rules(
+    base_severity: int,
+    model_output_severity: Optional[int] = None,
+) -> int:
+    """
+    Apply post-processing rules to computed severity.
 
     Args:
-        base_severity (int)
-        model_output_severity (int)
+        base_severity (int): Deterministically computed severity (likelihood × impact)
+        model_output_severity (Optional[int]): LLM-suggested severity (ignored)
 
     Returns:
-        int: adjusted severity
+        int: Authoritative severity value
     """
-    if base_severity == model_output_severity:
-        return base_severity
-
-    return round((base_severity + model_output_severity) / 2)
+    return base_severity
