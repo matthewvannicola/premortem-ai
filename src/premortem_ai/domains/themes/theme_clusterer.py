@@ -94,12 +94,19 @@ def generate_themes(risks: Dict[str, RiskItem], model_override: str = None) -> D
 # BACKWARDS COMPATIBILITY WRAPPER
 # --------------------------------------------------------
 
-def run_theme_stage(risks: Dict[str, RiskItem], model_override: str | None = None) -> Dict[str, ThemeItem]:
+def run_theme_stage(*, context, request) -> None:
     """
-    Legacy wrapper for older pipeline calls.
+    Pipeline stage entrypoint for theme clustering.
 
-    Historically the pipeline imported `run_theme_stage`.
-    Internally, theming is now implemented via `generate_themes`.
-    This adapter keeps the pipeline stable without modifying callers.
+    Reads scored risks from the pipeline context,
+    clusters them into themes, and writes results
+    back into the context.
     """
-    return generate_themes(risks=risks, model_override=model_override)
+    if not hasattr(context, "scores") or not context.scores:
+        raise ValueError("No scored risks available for theme clustering stage.")
+
+    themes = run_theme_clustering(
+        scores=context.scores,
+    )
+
+    context.themes = themes
