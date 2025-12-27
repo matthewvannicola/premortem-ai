@@ -1,0 +1,82 @@
+[
+  {
+    "risk_id": "risk-001",
+    "llm_score": 4,
+    "probability": 0.68,
+    "impact": 5,
+    "human_score": null,
+    "model_reasoning": "Inconsistent schemas create frequent ETL and data mapping failures, and the impact on analytics quality is severe."
+  },
+  {
+    "risk_id": "risk-002",
+    "llm_score": 4,
+    "probability": 0.55,
+    "impact": 4,
+    "human_score": null,
+    "model_reasoning": "Cross-team dependencies historically cause delays, and blocking Salesforce/Snowflake integration would slow the MVP timeline significantly."
+  },
+  {
+    "risk_id": "risk-003",
+    "llm_score": 3,
+    "probability": 0.62,
+    "impact": 4,
+    "human_score": null,
+    "model_reasoning": "Real-time ETL expectations exceed current infrastructure reliability, creating medium-high probability of failure and moderate-high impact."
+  },
+  {
+    "risk_id": "risk-004",
+    "llm_score": 4,
+    "probability": 0.47,
+    "impact": 5,
+    "human_score": null,
+    "model_reasoning": "Lack of data quality ownership allows inaccurate or stale data to propagate into decision-making dashboards, creating high organizational risk."
+  },
+  {
+    "risk_id": "risk-005",
+    "llm_score": 3,
+    "probability": 0.59,
+    "impact": 3,
+    "human_score": null,
+    "model_reasoning": "UI/UX delays commonly produce frontend rework, moderately impacting development velocity but not threatening core architecture."
+  },
+  {
+    "risk_id": "risk-006",
+    "llm_score": 3,
+    "probability": 0.44,
+    "impact": 4,
+    "human_score": null,
+    "model_reasoning": "Security reviews often extend timelines, with moderate risk and meaningful impact due to gating deployment readiness."
+  },
+  {
+    "risk_id": "risk-007",
+    "llm_score": 4,
+    "probability": 0.71,
+    "impact": 4,
+    "human_score": null,
+    "model_reasoning": "Frequent Salesforce field changes create high likelihood of data pipeline breakage and outages, posing a serious operational risk."
+  },
+  {
+    "risk_id": "risk-008",
+    "llm_score": 3,
+    "probability": 0.52,
+    "impact": 4,
+    "human_score": null,
+    "model_reasoning": "Dashboard load bottlenecks affect user experience and performance SLAs, giving this a medium-high impact profile."
+  },
+  {
+    "risk_id": "risk-009",
+    "llm_score": 2,
+    "probability": 0.33,
+    "impact": 3,
+    "human_score": null,
+    "model_reasoning": "Branding mismatches cause iteration churn but rarely impact core product functionality, making this a lower-severity risk."
+  },
+  {
+    "risk_id": "risk-010",
+    "llm_score": 4,
+    "probability": 0.58,
+    "impact": 5,
+    "human_score": null,
+    "model_reasoning": "Limited backend capacity affects throughput and can significantly delay core feature development, producing high operational risk."
+  }
+]

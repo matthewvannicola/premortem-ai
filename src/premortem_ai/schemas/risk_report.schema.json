@@ -1,0 +1,61 @@
+{
+  "$id": "https://premortem.ai/schemas/risk_report.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RiskReport",
+  "description": "Top-level aggregate representing the full output of a PreMortem AI analysis run.",
+  "type": "object",
+  "additionalProperties": false,
+
+  "required": [
+    "risks",
+    "scores",
+    "themes",
+    "mitigations",
+    "summary",
+    "metadata"
+  ],
+
+  "properties": {
+    "risks": {
+      "type": "array",
+      "description": "Canonical list of discovered risks.",
+      "items": { "$ref": "risk_item.schema.json" },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+
+    "scores": {
+      "type": "array",
+      "description": "Scoring results for each risk.",
+      "items": { "$ref": "score_item.schema.json" },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+
+    "themes": {
+      "type": "array",
+      "description": "Systemic themes identified across risks.",
+      "items": { "$ref": "theme_item.schema.json" },
+      "minItems": 0,
+      "uniqueItems": true
+    },
+
+    "mitigations": {
+      "type": "array",
+      "description": "Actionable mitigation guidance grouped by related risks.",
+      "items": { "$ref": "mitigation_item.schema.json" },
+      "minItems": 0,
+      "uniqueItems": true
+    },
+
+    "summary": {
+      "$ref": "summary.schema.json",
+      "description": "Executive-level narrative summarizing risk posture and health score."
+    },
+
+    "metadata": {
+      "$ref": "metadata.schema.json",
+      "description": "Execution-level metadata describing pipeline configuration and runtime context."
+    }
+  }
+}

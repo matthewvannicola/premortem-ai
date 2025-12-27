@@ -1,0 +1,8 @@
+{
+  "project_description": "We are building a cross-platform Customer Insight Dashboard for internal analytics teams. The system will aggregate data from multiple upstream platforms, including CRM, data warehouse, and internal event streams, to produce unified customer profiles, scoring, trend analysis, and executive reporting. Key challenges include inconsistent legacy data schemas, cross-team dependency timelines, security review requirements, and strict performance SLAs for near-real-time analytics and dashboard rendering across business units.",
+  "max_risks": 200,
+  "include_metadata": true,
+  "output_format": "json",
+  "model_version_override": "gpt-5.2",
+  "pipeline_version_override": "v1"
+}

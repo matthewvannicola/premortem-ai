@@ -1,0 +1,46 @@
+{
+  "$id": "https://premortem.ai/schemas/pipeline_request.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PipelineRequest",
+  "description": "Validated input request schema for initiating a PreMortem AI risk analysis pipeline execution.",
+  "type": "object",
+  "additionalProperties": false,
+
+  "required": ["project_description"],
+
+  "properties": {
+    "project_description": {
+      "type": "string",
+      "description": "Raw, free-form project description provided by the user. This field is normalized before pipeline execution.",
+      "minLength": 10,
+      "maxLength": 20000
+    },
+
+    "max_risks": {
+      "type": "integer",
+      "description": "Optional cap for the number of risks to extract during discovery.",
+      "minimum": 1,
+      "maximum": 500,
+      "default": 50
+    },
+
+    "include_metadata": {
+      "type": "boolean",
+      "description": "Whether to include execution metadata in the final RiskReport.",
+      "default": true
+    },
+
+    "model_version_override": {
+      "type": "string",
+      "description": "Optional override allowing callers to specify a different model version (e.g., 'gpt-5.1', 'gpt-4.1-mini').",
+      "minLength": 1,
+      "maxLength": 100
+    },
+
+    "pipeline_version_override": {
+      "type": "string",
+      "description": "Optional semantic version override for executing the request with a specific pipeline revision.",
+      "pattern": "^v?[0-9]+\\.[0-9]+\\.[0-9]+$"
+    }
+  }
+}

@@ -1,0 +1,144 @@
+name: mitigation
+version: "1.0.0"
+
+description: >
+  Generates mitigation strategies for each scored risk. Accepts an array of risks
+  containing likelihood, impact, and severity scoring, and returns a standardized
+  mitigation object per risk. This component is part of the PreMortem AI pipeline
+  and ensures consistent, actionable mitigation planning.
+
+  # Input shape (example):
+  # [
+  #   {
+  #     "id": "risk-001",
+  #     "title": "string",
+  #     "description": "string",
+  #     "likelihood": "medium",
+  #     "impact": "high",
+  #     "likelihood_score": 2,
+  #     "impact_score": 3,
+  #     "severity_score": 6
+  #   }
+  # ]
+
+  # Output shape (example):
+  # {
+  #   "mitigations": [
+  #     {
+  #       "risk_id": "risk-001",
+  #       "short_term": "Immediate steps to reduce exposure...",
+  #       "long_term": "Structural or strategic mitigation actions...",
+  #       "owner": "Team or role responsible",
+  #       "priority": "low|medium|high"
+  #     }
+  #   ]
+  # }
+
+type: action
+displayName: Mitigation – Generate Risk Mitigation Plans
+packageName: premortem-ai
+icon: https://raw.githubusercontent.com/matthewvannicola/premortem-ai/main/assets/icon.png
+
+props:
+  risks:
+    type: object
+    label: Scored Risks Array
+    description: Array of risks with severity scoring from the scoring step.
+    required: true
+
+run:
+  async (context) => {
+
+    //
+    // -------------------------------
+    // INPUT VALIDATION
+    // -------------------------------
+    //
+    const risks = context.props.risks;
+
+    if (!Array.isArray(risks) || risks.length === 0) {
+      throw new Error("Input 'risks' must be a non-empty array.");
+    }
+
+    //
+    // -------------------------------
+    // NORMALIZATION
+    // -------------------------------
+    //
+    const normalized = risks.map((r) => ({
+      ...r,
+      title: typeof r.title === "string" ? r.title.normalize("NFKC").trim() : r.title,
+      description:
+        typeof r.description === "string"
+          ? r.description.normalize("NFKC").trim()
+          : r.description
+    }));
+
+    //
+    // -------------------------------
+    // LLM PROMPT
+    // -------------------------------
+    //
+    const prompt = `
+You are PreMortem AI. For each risk, generate a structured mitigation plan.
+
+Each mitigation object MUST include:
+- risk_id (string)
+- short_term (concise actions that can be executed immediately)
+- long_term (strategic or structural solutions)
+- owner (team, discipline, or role best suited to own mitigation)
+- priority (low, medium, high) — based on severity_score
+
+Rules:
+- Return ONLY valid JSON.
+- Provide actionable, practical guidance.
+- Priority should correlate with severity_score.
+
+Risks:
+${JSON.stringify(normalized, null, 2)}
+`;
+
+    //
+    // -------------------------------
+    // LLM EXECUTION
+    // -------------------------------
+    //
+    const response = await context.$ai.run("gpt-4.1", {
+      messages: [
+        { role: "system", content: "You are an AI mitigation strategy engine." },
+        { role: "user", content: prompt }
+      ],
+      response_format: {
+        type: "json_schema",
+        schema: {
+          type: "object",
+          properties: {
+            mitigations: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  risk_id: { type: "string" },
+                  short_term: { type: "string" },
+                  long_term: { type: "string" },
+                  owner: { type: "string" },
+                  priority: { type: "string" }
+                },
+                required: ["risk_id", "short_term", "long_term", "owner", "priority"]
+              }
+            }
+          },
+          required: ["mitigations"]
+        }
+      }
+    });
+
+    //
+    // -------------------------------
+    // RETURN OUTPUT
+    // -------------------------------
+    //
+    return {
+      mitigations: response.mitigations
+    };
+  }

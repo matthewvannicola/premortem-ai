@@ -1,0 +1,78 @@
+{
+  "name": "PreMortem AI – Main Pipeline",
+  "description": "Runs the full PreMortem AI workflow: discovery → scoring → themes → mitigations → summary → final report.",
+  "trigger": {
+    "type": "http",
+    "name": "incoming_request"
+  },
+  "steps": [
+    {
+      "name": "extract_input",
+      "type": "code",
+      "code": "// Safely extract and validate project description\nconst desc = event.body?.project_description;\n\nif (!desc || typeof desc !== 'string' || desc.trim().length === 0) {\n  throw new Error(\"Invalid or missing field: project_description\");\n}\n\nreturn {\n  project_description: desc.trim()\n};"
+    },
+
+    {
+      "name": "discover_risks",
+      "type": "component",
+      "component": "matthewvannicola/premortem-ai/pipedream/components/discovery",
+      "props": {
+        "project_description": "{{steps.extract_input.project_description}}"
+      }
+    },
+
+    {
+      "name": "score_risks",
+      "type": "component",
+      "component": "matthewvannicola/premortem-ai/pipedream/components/scoring",
+      "props": {
+        "risks": "{{steps.discover_risks}}"
+      }
+    },
+
+    {
+      "name": "cluster_themes",
+      "type": "component",
+      "component": "matthewvannicola/premortem-ai/pipedream/components/themes",
+      "props": {
+        "risks": "{{steps.score_risks}}"
+      }
+    },
+
+    {
+      "name": "generate_mitigations",
+      "type": "component",
+      "component": "matthewvannicola/premortem-ai/pipedream/components/mitigation",
+      "props": {
+        "risks": "{{steps.score_risks}}"
+      }
+    },
+
+    {
+      "name": "generate_summary",
+      "type": "component",
+      "component": "matthewvannicola/premortem-ai/pipedream/components/summary",
+      "props": {
+        "risks": "{{steps.score_risks}}"
+      }
+    },
+
+    {
+      "name": "assemble_final_report",
+      "type": "component",
+      "component": "matthewvannicola/premortem-ai/pipedream/components/final_report",
+      "props": {
+        "risks": "{{steps.score_risks}}",
+        "themes": "{{steps.cluster_themes}}",
+        "mitigations": "{{steps.generate_mitigations}}",
+        "summary": "{{steps.generate_summary}}"
+      }
+    },
+
+    {
+      "name": "respond",
+      "type": "code",
+      "code": "// Return complete structured pipeline results in one body\nreturn {\n  status: \"success\",\n  project_description: steps.extract_input.project_description,\n  discovered_risks: steps.discover_risks,\n  scored_risks: steps.score_risks,\n  themes: steps.cluster_themes,\n  mitigations: steps.generate_mitigations,\n  summary: steps.generate_summary,\n  final_report: steps.assemble_final_report\n};"
+    }
+  ]
+}

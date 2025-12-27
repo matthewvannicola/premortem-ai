@@ -1,0 +1,62 @@
+[
+  {
+    "id": "risk-001",
+    "title": "Ambiguous Feature Scope",
+    "description": "The project requirements lack clarity around dashboard filtering logic, increasing the likelihood of misaligned development and rework.",
+    "category": "requirements"
+  },
+  {
+    "id": "risk-002",
+    "title": "Inconsistent Data Model Across Teams",
+    "description": "Different engineering teams use slightly different interpretations of key fields, increasing the likelihood of reporting discrepancies.",
+    "category": "technical"
+  },
+  {
+    "id": "risk-003",
+    "title": "API Throughput Constraints",
+    "description": "Backend APIs may not handle anticipated peak traffic, leading to slow response times or timeouts.",
+    "category": "technical"
+  },
+  {
+    "id": "risk-004",
+    "title": "Lack of Automated Regression Testing",
+    "description": "New releases risk introducing unintended side effects due to limited automated test coverage.",
+    "category": "quality"
+  },
+  {
+    "id": "risk-005",
+    "title": "Late Stakeholder Feedback Cycles",
+    "description": "Stakeholders review deliverables too late in the process, increasing the likelihood of last-minute redesigns and extended timelines.",
+    "category": "process"
+  },
+  {
+    "id": "risk-006",
+    "title": "Vendor Library Deprecation",
+    "description": "A third-party dependency used in the project is scheduled for deprecation, posing maintenance and compatibility issues.",
+    "category": "technical"
+  },
+  {
+    "id": "risk-007",
+    "title": "Insufficient UX Validation",
+    "description": "User experience patterns have not been validated with representative users, increasing the risk of low adoption and usability issues.",
+    "category": "usability"
+  },
+  {
+    "id": "risk-008",
+    "title": "Performance Bottlenecks in Dashboard Rendering",
+    "description": "Data-heavy components may degrade responsiveness, negatively impacting user experience and increasing abandonment.",
+    "category": "technical"
+  },
+  {
+    "id": "risk-009",
+    "title": "PDF Export Branding Failures",
+    "description": "Brand guidelines are inconsistently applied in exported PDFs, reducing perceived professionalism.",
+    "category": "compliance"
+  },
+  {
+    "id": "risk-010",
+    "title": "Limited Backend Engineering Capacity",
+    "description": "Engineering staffing constraints may slow delivery and increase the risk of unmet deadlines.",
+    "category": "resource"
+  }
+]
