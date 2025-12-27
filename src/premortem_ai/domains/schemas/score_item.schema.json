@@ -1,0 +1,52 @@
+{
+  "$id": "https://premortem.ai/schemas/score_item.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ScoreItem",
+  "description": "Deterministic scoring output for an individual risk, including likelihood, impact, severity, and rationale.",
+  "type": "object",
+  "additionalProperties": false,
+
+  "required": [
+    "risk_id",
+    "likelihood",
+    "impact",
+    "severity",
+    "rationale"
+  ],
+
+  "properties": {
+    "risk_id": {
+      "type": "string",
+      "description": "Reference to a risk entity defined in risk_item.schema.json.",
+      "pattern": "^risk-[0-9]{5}$"
+    },
+
+    "likelihood": {
+      "type": "integer",
+      "description": "Probability of occurrence (1–5).",
+      "minimum": 1,
+      "maximum": 5
+    },
+
+    "impact": {
+      "type": "integer",
+      "description": "Magnitude of damage if risk occurs (1–5).",
+      "minimum": 1,
+      "maximum": 5
+    },
+
+    "severity": {
+      "type": "integer",
+      "description": "Deterministic computed value: likelihood × impact.",
+      "minimum": 1,
+      "maximum": 25
+    },
+
+    "rationale": {
+      "type": "string",
+      "description": "Short explanation describing why likelihood/impact were assigned.",
+      "minLength": 3,
+      "maxLength": 1000
+    }
+  }
+}

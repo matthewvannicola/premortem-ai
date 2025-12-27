@@ -1,0 +1,45 @@
+{
+  "$id": "https://premortem.ai/schemas/mitigation_item.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MitigationItem",
+  "description": "Structured mitigation guidance for one or more risks, produced deterministically by the mitigation generator.",
+  "type": "object",
+  "additionalProperties": false,
+
+  "required": [
+    "mitigation_id",
+    "risk_ids",
+    "actions"
+  ],
+
+  "properties": {
+    "mitigation_id": {
+      "type": "string",
+      "description": "Deterministic, zero-padded identifier for the mitigation object.",
+      "pattern": "^mitigation-[0-9]{5}$"
+    },
+
+    "risk_ids": {
+      "type": "array",
+      "description": "List of risk identifiers this mitigation applies to.",
+      "items": {
+        "type": "string",
+        "pattern": "^risk-[0-9]{5}$"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+
+    "actions": {
+      "type": "array",
+      "description": "List of concrete, testable mitigation steps.",
+      "items": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 500
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  }
+}

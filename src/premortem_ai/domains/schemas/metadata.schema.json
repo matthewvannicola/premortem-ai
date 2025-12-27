@@ -1,0 +1,51 @@
+{
+  "$id": "https://premortem.ai/schemas/metadata.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Metadata",
+  "description": "Metadata describing pipeline execution context, versioning, and timing for a full risk analysis run.",
+  "type": "object",
+  "additionalProperties": false,
+
+  "required": [
+    "timestamp_utc",
+    "pipeline_version",
+    "model_version",
+    "execution_time_ms"
+  ],
+
+  "properties": {
+    "timestamp_utc": {
+      "type": "string",
+      "description": "UTC timestamp of pipeline execution in ISO-8601 format.",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+    },
+
+    "pipeline_version": {
+      "type": "string",
+      "description": "Semantic version of the full analysis pipeline.",
+      "pattern": "^v?[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+
+    "model_version": {
+      "type": "string",
+      "description": "Identifier of the LLM used during this analysis run (e.g., 'gpt-4.1', 'gpt-5.1').",
+      "minLength": 1,
+      "maxLength": 100
+    },
+
+    "execution_time_ms": {
+      "type": "integer",
+      "description": "Total time (in milliseconds) required to execute the full pipeline.",
+      "minimum": 0,
+      "maximum": 600000
+    },
+
+    "determinism_fingerprint": {
+      "type": "string",
+      "description": "Optional reproducibility signature generated from normalized input and config.",
+      "minLength": 8,
+      "maxLength": 200,
+      "nullable": true
+    }
+  }
+}

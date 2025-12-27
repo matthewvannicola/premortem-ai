@@ -1,0 +1,18 @@
+{
+  "$id": "https://premortem.ai/schemas/pipeline_response.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PipelineResponse",
+  "description": "Validated output schema representing the full response from a PreMortem AI pipeline execution. This is the top-level contract returned by the /analysis endpoint.",
+
+  "type": "object",
+  "additionalProperties": false,
+
+  "required": ["report"],
+
+  "properties": {
+    "report": {
+      "$ref": "risk_report.schema.json",
+      "description": "The complete RiskReport aggregate containing risks, scores, themes, mitigations, summary, and metadata."
+    }
+  }
+}
