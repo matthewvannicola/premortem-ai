@@ -4,8 +4,8 @@ from __future__ import annotations
 class LineMap:
     """Convert character offsets to 1-based line numbers."""
 
-    def __Init__(self, text: str) -> None:
-        self._line_starts + [0]
+    def __init__(self, text: str) -> None:
+        self._line_starts = [0]
         for i, ch in enumerate(text):
             if ch == "\n":
                 self._line_starts.append(i + 1)

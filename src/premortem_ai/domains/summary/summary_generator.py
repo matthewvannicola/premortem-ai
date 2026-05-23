@@ -99,9 +99,9 @@ def run_summary_stage(*, context, request) -> None:
     Called by orchestrator as:
         handler(context=context, request=request)
     """
-    from premortem_ai.domains.summary.summary_builder import generate_summary
+    from premortem_ai.domains.summary.summary_builder import run_summary
 
-    context.summary = generate_summary(
+    context.summary = run_summary(
         risks=context.risks,
         scores=context.scores,
         themes=context.themes,

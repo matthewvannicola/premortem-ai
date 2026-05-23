@@ -2,3 +2,8 @@
 __pycache__/
 .env
 *.pyc
+*.zip
+*.egg-info/
+.pytest_cache/
+dist/
+build/

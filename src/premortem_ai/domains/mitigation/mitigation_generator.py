@@ -117,8 +117,8 @@ def run_mitigation_stage(*, context, request) -> None:
     if not hasattr(context, "scores") or not context.scores:
         raise ValueError("No scored risks available for mitigation stage.")
 
-    mitigations = run_mitigation_generation(
-        scores=context.scores,
+    mitigations = generate_mitigations(
+        risks=context.risks,
         model_override=request.model_version_override,
     )
 
